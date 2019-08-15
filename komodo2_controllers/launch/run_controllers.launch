@@ -1,0 +1,6 @@
+<launch>
+	<rosparam command="load" file="$(find robotican_controllers)/config/arm_joints.yaml"/>
+	
+	<node name="robotican_hardware_interface" pkg="robotican_hardware_interface" type="robotican_hardware_interface_node" respawn="false" output="screen" />
+	<node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="arm_trajectory_controller" />
+</launch>

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+
+<launch>
+    
+    
+    <param name="robot_description" command="$(find xacro)/xacro.py '$(find komodo2_description)/urdf/komodo2.xacro'" />
+    
+    
+    <param name="publish_default_velocities" value="false" />
+    <param name="publish_default_efforts" value="false" />
+    
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+        <param name="use_gui" value="TRUE"/>
+    </node>  
+    
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find komodo2_description)/config/rrbot.rviz"/>
+    
+</launch>

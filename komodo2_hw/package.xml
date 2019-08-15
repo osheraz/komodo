@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package>
+    <name>komodo2_hw</name>
+    <version>0.0.0</version>
+    <description>The komodo2_hw package</description>
+
+     <license>MIT</license>  
+     <maintainer email="support@robotican.net">RobotICan</maintainer>
+    
+    <buildtool_depend>catkin</buildtool_depend>
+    
+    <build_depend>roscpp</build_depend>
+    <build_depend>dynamixel_sdk</build_depend>
+    <build_depend>yaml-cpp</build_depend>
+    <build_depend>controller_manager</build_depend>
+    <build_depend>ric_interface</build_depend>
+    <build_depend>roboteq_control</build_depend>
+    <build_depend>bms_interface</build_depend>
+
+
+    <run_depend>roscpp</run_depend>
+    <run_depend>dynamixel_sdk</run_depend>
+    <run_depend>yaml-cpp</run_depend>
+    <run_depend>controller_manager</run_depend>
+    <run_depend>ric_interface</run_depend>
+    <run_depend>roboteq_control</run_depend>
+    <run_depend>bms_interface</run_depend>
+
+
+    <!-- The export tag contains other, unspecified, tags -->
+    <export>
+        <!-- Other tools can request additional information be placed here -->
+        
+    </export>
+</package>

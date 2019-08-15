@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="GPS" description="GPS sensor">
+<xacro:macro name="gps" params="link hz topic lat long alt">
+		<gazebo>
+			<plugin name="GazeboRosGps" filename="libhector_gazebo_ros_gps.so">
+				<updateRate>${hz}</updateRate>
+				<bodyName>${link}</bodyName>
+				<frameId>${link}</frameId>
+				<topicName>${topic}/fix</topicName>
+				<serviceName>SERVICE_GPS</serviceName>
+				<velocityTopicName>${topic}/fix_velocity</velocityTopicName>
+				<gaussianNoise>2.89e-08 2.89e-08 2.89e-08</gaussianNoise>
+				<velocityGaussianNoise>2.89e-08 2.89e-08 2.89e-08</velocityGaussianNoise>
+				<referenceLatitude>${lat}</referenceLatitude>
+				<referenceLongitude>${long}</referenceLongitude>
+				<referenceAltitude>${alt}</referenceAltitude>
+			</plugin>
+		</gazebo>
+	</xacro:macro>
+</robot>

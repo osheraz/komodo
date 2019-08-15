@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
+        <rosparam command="load" file="$(find armadillo2_navigation)/config/robot_localization.yaml" />
+        <remap from="cmd_vel" to="mobile_base_controller/cmd_vel"/>
+        <!--  Placeholder for output topic remapping
+        <remap from="odometry/filtered" to=""/>
+        <remap from="accel/filtered" to=""/>
+        -->
+        
+    </node>
+</launch>

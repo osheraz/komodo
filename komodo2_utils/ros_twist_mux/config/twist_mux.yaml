@@ -1,0 +1,30 @@
+topics:
+-
+  name    : joystick
+  topic   : joy_vel
+  timeout : 0.5
+  priority: 100
+-
+  name    : api
+  topic   : cmd_vel
+  timeout : 0.5
+  priority: 90
+-
+  name    : navigation
+  topic   : nav_vel
+  timeout : 0.5
+  priority: 80
+
+locks:
+-
+  name    : pause
+  topic   : pause_navigation
+  timeout : 0.0
+  # Same priority as joystick control, so it'll not block it.
+  priority: 100
+-
+  name    : joystick 
+  topic   : joy_priority
+  timeout : 0.0
+  priority: 100
+

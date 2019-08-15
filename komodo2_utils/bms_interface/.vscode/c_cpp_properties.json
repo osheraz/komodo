@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/opt/ros/kinetic/include",
+                    "/usr/include",
+                    "${workspaceRoot}"
+                ]
+            },
+            "includePath": [
+                "/opt/ros/kinetic/include",
+                "/usr/include",
+                "${workspaceRoot}"
+            ],
+            "name": "Linux",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 3
+}

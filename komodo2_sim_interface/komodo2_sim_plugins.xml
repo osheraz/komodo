@@ -1,0 +1,9 @@
+<library path="lib/libkomodo2_sim_interface">
+    <class
+            name="gazebo_ros_control/Komodo2RobotHWSim"
+            type="gazebo_ros_control::Komodo2RobotHWSim"
+            base_class_type="gazebo_ros_control::RobotHWSim">
+        <description>
+        </description>
+    </class>
+</library>

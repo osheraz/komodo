@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<launch>
+    
+    <arg name="joy_dev" default="/dev/input/js0"/>
+    <arg name="joy_profile" default="steelseries"/>
+    <arg name="tele_arm" default="false"/>
+
+    <!-- load joystick listener node -->
+    <node pkg="joy" type="joy_node" name="joy_listener">
+        <param name="dev" value="$(arg joy_dev)" />
+        <param name="deadzone" value="0.05" /><!-- relative to an axis normalized between -1 and 1 -->
+        <param name="autorepeat_rate" value="20" />
+    </node>
+    
+    <node pkg="komodo2_teleop" type="komodo2_teleop_node" name="komodo2_teleop_node" output="screen">
+        <rosparam file="$(find komodo2_teleop)/config/joy_profiles.yaml" command="load"/>
+        <rosparam file="$(find komodo2_teleop)/config/config.yaml" command="load"/>
+        <param name="profile" value="$(arg joy_profile)" />
+        <param name="tele_arm" value="$(arg tele_arm)" />
+    </node>
+    
+</launch>

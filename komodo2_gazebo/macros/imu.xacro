@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="IMU" description="IMU sensor">
+	<xacro:macro name="imu" params="link hz topic">
+		
+ <gazebo reference="${link}">
+    <gravity>true</gravity>
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>${hz}</update_rate>
+      <visualize>false</visualize>
+      <topic>IMU/data</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <topicName>${topic}</topicName>
+        <bodyName>${link}</bodyName>
+        <updateRateHZ>${hz}</updateRateHZ>
+        <gaussianNoise>0.01</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <frameName>${link}</frameName>
+      </plugin>
+      <pose>0 0 0 0 0 0</pose>
+    </sensor>
+  </gazebo>
+  
+  <gazebo>
+        <plugin name="GazeboRosMagnetic" filename="libhector_gazebo_ros_magnetic.so">
+                <updateRate>50.0</updateRate>
+                <bodyName>${link}</bodyName>
+                <frameId>${link}</frameId>
+                <topicName>IMU/magnetic</topicName>
+                <offset>0 0 0</offset>
+                <drift>0.0 0.0 0.0</drift>
+                <gaussianNoise>1.3e-2 1.3e-2 1.3e-2</gaussianNoise>
+        </plugin>
+</gazebo>
+
+	</xacro:macro>
+
+</robot>

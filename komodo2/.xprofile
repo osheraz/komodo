@@ -1,0 +1,5 @@
+#!/bin/sh
+sleep 10
+xrandr --newmode "1280x800_59.91"  83.34  1280 1344 1480 1680  800 801 804 828  -HSync +Vsync
+xrandr --addmode DVI-I-1-1 "1280x800_59.91"
+xrandr --output DVI-I-1-1 --mode "1280x800_59.91"

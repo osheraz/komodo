@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node name="espeak_node" pkg="espeak_ros" type="espeak_node" respawn="false" output="screen">
+    
+        <param name="voice" value="1" />
+        <param name="dialect" value="1" />
+        <param name="rate" value="157" />
+        <param name="volume" value="100" />
+        <param name="pitch" value="50" />
+        <param name="punctuation" value="0" />
+        <param name="capitals" value="0" />
+        <param name="wordgap" value="10" />
+        <param name="wordgap" value="10" />
+        <param name="gender" value="1" />
+        <param name="age" value="30" />
+      
+    </node>
+</launch>

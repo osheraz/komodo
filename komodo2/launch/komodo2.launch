@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- komodo2 top-level launch -->
+
+<launch>
+    
+    <!--common settings-->
+    <arg name="gazebo" default="false" doc="execute komodo2 inside gazebo sim"/>
+    <arg name="world_name" default="worlds/home.world"/>
+
+    <!--arg name="world_name" default="$(find komodo2_gazebo)/worlds/wow1.world"/--> 
+    <!--arg name="world_name" default="$(find komodo2_gazebo)/worlds/home.world"/--> 
+    <arg name="x" default="2.0"/>
+    <arg name="y" default="0.0"/>
+    <arg name="z" default="0.0"/>
+    <arg name="Y" default="0.0" />
+    <arg name="moveit" default="false"/>
+    <arg name="rgb_cam" default="false"/>
+    <arg name="depth_cam" default="false"/>
+    <arg name="lidar" default="false"/>
+    <arg name="gmapping" default="false"/>
+    <arg name="hector_slam" default="false"/>
+    <arg name="amcl" default="false"/>
+    <arg name="have_map" default="false" doc="set to true to use pre-saved map"/>
+    <arg name="map" default="map.yaml" doc="pre-saved map path"/>
+    <arg name="move_base" default="false"/>
+    <arg name="robot_localization" default="false"/>
+    <arg name="teleop" default="false" doc="allow komodo2 joy teleop"/>
+    
+    <!--uncommon settings-->
+    <arg name="joy_dev" default="/dev/input/js0"/>
+    <arg name="joy_profile" default="xbox"/>
+    <arg name="twist_mux" default="true"/>
+    
+
+    <!-- convert joint states to TF transforms for rviz, etc -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen"/>
+    
+    <!-- include komodo2_controllers for wheels and Arm -->
+    <include file="$(find komodo2_control)/launch/komodo2_controllers.launch" />
+    
+    <!-- include espeak ros convert ros topic into sound for battery %? -->
+    <include file="$(find espeak_ros)/launch/espeak_ros.launch" />
+    
+    <!-- include telep for remotre control -->
+    <group if="$(arg teleop)" >
+        <include file="$(find komodo2_teleop)/launch/komodo2_teleop.launch">
+            <arg name="joy_dev" value="$(arg joy_dev)"/>
+            <arg name="joy_profile" value="$(arg joy_profile)"/>
+        </include>
+    </group>
+
+    <!-- load map for rviz -->
+    <group if="$(arg have_map)">
+        <node name="map_server" pkg="map_server" type="map_server" args="$(arg map)" />
+    </group>
+
+    <!--if no one publish map-odom tf, load static tf-->
+    <group unless="$(arg gmapping)">
+        <group unless="$(arg hector_slam)">
+            <group unless="$(arg amcl)">           
+                <group unless="$(arg robot_localization)">  
+                    <node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster" args="0 0 0 0 0 0 /map /odom 20" /> 
+                </group>   
+            </group>   
+        </group>    
+    </group>
+    
+    <!--load simulation stuff-->
+    <group if="$(arg gazebo)">
+        <env name="GAZEBO_MODEL_PATH" value="$(find komodo2_gazebo)/models:$(optenv GAZEBO_MODEL_PATH)"/>
+        <param name="robot_description" command="$(find xacro)/xacro '$(find komodo2_description)/urdf/komodo2_gazebo.xacro' --inorder 
+               depth_cam:=$(arg depth_cam)
+               rgb_cam:=$(arg rgb_cam)
+               urf:=true
+               imu:=true
+               gps:=true
+               lidar:=$(arg lidar)" />
+
+        <!--load empty_world map for gazebo-->
+        <!--include file="$(find gazebo_ros)/launch/empty_world.launch"-->	    
+        <include file="$(find gazebo_ros)/launch/empty_world.launch">	    
+            <arg name="world_name" value="$(arg world_name)"/>
+            <arg name="gui" value="true"/>	     
+        </include>
+
+
+
+        <!--load model into gazebo-->
+        <node name="komodo2_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param robot_description -model komodo2 -x $(arg x) -y $(arg y) -z $(arg z) -Y $(arg Y)" />
+    </group>
+    
+    <!--load hardware stuff-->
+    <group unless="$(arg gazebo)">
+        <param name="robot_description" command="$(find xacro)/xacro '$(find komodo2_description)/urdf/komodo2.xacro' --inorder" />
+        <include file="$(find komodo2_hw)/launch/komodo2_hw.launch" />
+        
+        <group if="$(arg depth_cam)">
+            <include file="$(find openni2_launch)/launch/openni2.launch" >
+              <arg name="publish_tf" value="false"/>
+                 </include>
+        </group>
+        
+        <group if="$(arg rgb_cam)">
+            <include file="$(find usb_cams)/launch/front_cam.launch" />
+        </group>
+        
+        <group if="$(arg lidar)">
+            <node pkg="lms1xx" name="lms1xx" type="LMS1xx_node" output="screen">
+                <param name="host" value="169.254.230.219" />
+                <param name="frame_id" value="laser_link" />
+                <param name="publish_min_range_as_inf" value="false" />
+            </node>
+        </group>
+        
+    </group>
+    
+    <group if="$(arg twist_mux)">
+        <include file="$(find ros_twist_mux)/launch/twist_mux.launch" />
+    </group>
+    
+    
+    <group if="$(arg gmapping)">
+        <include file="$(find komodo2_navigation)/launch/gmapping.launch" />
+    </group>
+    
+    <group if="$(arg hector_slam)">
+        <include file="$(find komodo2_navigation)/launch/hector_slam.launch" />
+    </group>
+    
+    <group if="$(arg robot_localization)">
+        <include file="$(find komodo2_navigation)/launch/robot_localization.launch" />
+    </group>
+    
+    <group if="$(arg amcl)">
+        <include file="$(find komodo2_navigation)/launch/amcl.launch" >
+            <arg name="x" value="$(arg x)"/>
+            <arg name="y" value="$(arg y)"/>
+            <arg name="Y" value="$(arg Y)"/>
+        </include>
+    </group>
+    
+    <group if="$(arg moveit)">
+        <include file="$(find komodo2_moveit_config)/launch/move_group.launch" />
+    </group>
+    
+    
+    <group if="$(arg move_base)">
+        <include file="$(find komodo2_navigation)/launch/move_base.launch" />
+        <rosparam file="$(find komodo2_navigation)/config/move_base_params.yaml" command="load" ns="move_base"/>
+        <rosparam file="$(find komodo2_navigation)/config/costmap_common_params.yaml" command="load" ns="move_base/global_costmap" />
+        <rosparam file="$(find komodo2_navigation)/config/costmap_common_params.yaml" command="load" ns="move_base/local_costmap" />
+        <rosparam file="$(find komodo2_navigation)/config/local_costmap_params.yaml" command="load" ns="move_base/local_costmap" />
+        <rosparam file="$(find komodo2_navigation)/config/global_costmap_params.yaml" command="load" ns="move_base/global_costmap"/>
+    </group>
+    
+</launch>

@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <!--<node name="rqt_robot_monitor" pkg="rqt_robot_monitor" type="rqt_robot_monitor" />-->
+    <!--<node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />-->
+        
+    <node name="komodo2_hw_node" pkg="komodo2_hw" type="komodo2_hw_node" respawn="false" output="screen">
+        
+        <!--roboteq-->
+        <param name="load_roboteq_hw" value="true" />
+        <param name="left_front_wheel_joint" value="left_front_wheel_joint" />
+        <param name="right_front_wheel_joint" value="right_front_wheel_joint" />
+        <param name="left_rear_wheel_joint" value="left_rear_wheel_joint" />
+        <param name="right_rear_wheel_joint" value="right_rear_wheel_joint" />
+        <param name="roboteq_port" value="/dev/komodo2/ROBOTEQ" />
+        <param name="roboteq_baud" value="115200" />
+
+        <!--ricboard-->
+        <param name="load_ric_hw" value="true" />
+        <param name="ric_port" value="/dev/komodo2/RICBOARD" />
+
+        <!--battery management system-->
+        <param name="load_battery_hw" value="true" />
+        <param name="show_warnings" value="false" />
+        <param name="low_batt_val" value="20" /><!--low battery warning value (precentage). -1 to disable-->
+        <!--<param name="batt_port" value="/dev/komodo2/BMS" />-->
+        <param name="batt_port" value="/dev/ttyACM0" />
+
+    </node>
+
+
+</launch>
