@@ -458,45 +458,41 @@ class KomodoEnvironment:
 
         return reward_tot
 
-    # def reward_function2(self, pos, particles):
-    #     """Update reward for a given State.
-    #     where:
-    #         pos -> current position
-    #         particles -> number of particle in the bucket
-    #     Params
-    #     ======
-    #         reward_pos ->  going along x axis
-    #         reward_ori ->  straight orientationn
-    #         reward_partcile -> particle in bucket
-    #     """
-    #     error_x = 1
-    #     error_y = pos[1]-self.last_pos[1]
-    #     cur_vel = self.velocity
-    #     max_particle = 7
-    #     error_par = abs(particles - max_particle)
-    #     reward_coeff = 10.0
-    #
-    #     dist_reward = 0.125 * ( 1 - math.tanh(1)**2
-    #     vel_discount = (1 - max(cur_vel, 0.1)**(1/max(error_x, 0.1)))
-    #     reward_pos = reward_coeff * vel_discount * dist_reward
-    #
-    #     reward_ori = 0 * np.sqrt(np.sum(self.orientation ** 2))
-    #     reward_particle = 3 * (1 - error_par ** 0.4)  # TODO FIX!
-    #     reward_tot = reward_pos + reward_ori + reward_particle
-    #
-    #     print('reward pos:', reward_pos)
-    #     print('reward ori:', reward_ori)
-    #     print('reward par:', reward_particle)
-    #     if self.z_tip < 0.02: # case z is bigger then ground
-    #         reward_ground = -100*abs(self.z_tip)      #0.0X
-    #         reward_tot += reward_ground
-    #         print('reward arm:', reward_ground)
-    #     elif self.bucket_link_z > self.pile.z_max and self.bucket_link_x > 0.35:
-    #         reward_arm = -10*self.bucket_link_z   #0.X
-    #         reward_tot += reward_arm
-    #         print('reward arm:', reward_arm)
-    #
-    #      return reward_tot
+    def reward_function2(self, pos, particles):
+        """Update reward for a given State.
+        where:
+            pos -> current position
+            particles -> number of particle in the bucket
+        Params
+        ======
+            reward_pos ->  going along x axis
+            reward_ori ->  straight orientationn
+            reward_particle -> particle in bucket
+        """
+        max_particle = 7
+        ground = 0.02
+        bucket_pos = np.array([self.bucket_link_x ,self.bucket_link_z])
+        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height])
+        dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
+        arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
+        bucket_joint = self.joint_state[2]
+
+        reward_dist = 0.125 * ( 1 - math.tanh(dist) ** 2)
+        vel_discount = 1 - max(self.velocity, 0.1) ** (1 / max(dist, 0.1))
+        reward_tot = vel_discount * reward_dist
+        if self.particle and self.particle < max_particle:
+            w = self.particle / max_particle
+            reward_tot += 0.125 + 0.25 * w
+        if self.z_tip < ground:# case z is bigger then ground
+            reward_ground = -0.125
+            reward_tot += reward_ground
+            print('reward ground:', reward_ground)
+        if self.bucket_link_z > self.pile.z_max and self.bucket_link_x > self.pile.sand_box_x:# not important area
+            reward_arm = -1*self.bucket_link_z #0.X
+            reward_tot += reward_arm
+            print('reward arm:', reward_arm)
+
+        return reward_tot
 
     def step(self, action):
 
@@ -542,7 +538,7 @@ class KomodoEnvironment:
         elif self.x_tip < self.pile.x_min:  # case bucket is out of important area
             self.reward += -10
             self.done = False
-        elif self.x_tip < 0.35 and self.z_tip > 0.3:
+        elif self.x_tip < self.pile.sand_box_x and self.z_tip > self.pile.z_max:
             self.done = True
             self.reward += 3
             self.reset()
