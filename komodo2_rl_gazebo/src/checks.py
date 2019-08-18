@@ -8,5 +8,5 @@ action_shape = env.action_shape
 
 print('CHECKER')
 observation, done = env.reset()
-while True:
-    print(env.check_particle_in_bucket())
+# while True:
+#     print(env.check_particle_in_bucket())

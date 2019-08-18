@@ -594,7 +594,7 @@
       link="arm" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="1000.0" lower="-0.5" upper="0.548" velocity="0.4"/>
+    <limit effort="1000.0" lower="-0.2" upper="0.32" velocity="0.1"/>
   </joint>
 
 
@@ -610,7 +610,7 @@
       link="bucket" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="1000.0" lower="-0.5" upper="0.548" velocity="0.3"/>
+    <limit effort="1000.0" lower="-0.5" upper="0.548" velocity="0.05"/>
   </joint>
 
 

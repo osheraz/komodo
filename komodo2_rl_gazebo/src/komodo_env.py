@@ -18,6 +18,7 @@ from Spawner import Spawner
 from matplotlib import path
 import math
 
+
 class Actions:
     def __init__(self):
         self.arm_pos_pub = rospy.Publisher('/arm_position_controller/command', Float64, queue_size=10)
@@ -193,7 +194,7 @@ class KomodoEnvironment:
         self.nb_actions = 3  #  base , arm , bucket
         self.nb_links = 3   # base , arm , bucket
 
-        self.state_shape = (self.nb_actions * 2 + 5 + 4 + 3 + 3,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
+        self.state_shape = (self.nb_actions * 2 + 8 + 4 + 3 + 3,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
         self.action_shape = (self.nb_actions,)
         self.flag = True
         self.particle = 0
@@ -282,7 +283,7 @@ class KomodoEnvironment:
         self.reward = 0.0
         self.done = False
         self.episode_start_time = 0.0
-        self.max_sim_time = 12.0
+        self.max_sim_time = 10.0
         self.action_coeff = 1.0
         self.linear_acc_coeff = 0.1
         self.last_action = np.zeros(self.nb_actions)
@@ -372,8 +373,8 @@ class KomodoEnvironment:
         diff_joint = np.zeros(self.nb_actions)
         normed_js = self.normalize_joint_state(self.joint_state)
 
-        arm_data = np.array([self.particle, self.x_tip, self.z_tip])
-        model_data = np.array([pos[0], self.velocity])
+        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
+        model_data = np.array([pos[0],pos[2], self.velocity])
 
         self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint, self.orientation, self.angular_vel,
                                      self.linear_acc_coeff*self.linear_acc)).reshape(1, -1)
@@ -471,8 +472,8 @@ class KomodoEnvironment:
         """
         max_particle = 7
         ground = 0.02
-        bucket_pos = np.array([self.bucket_link_x ,self.bucket_link_z])
-        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height])
+        bucket_pos = np.array([self.bucket_link_x, self.bucket_link_z])
+        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
         dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
         arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
         bucket_joint = self.joint_state[2]
@@ -480,9 +481,11 @@ class KomodoEnvironment:
         reward_dist = 0.125 * ( 1 - math.tanh(dist) ** 2)
         vel_discount = 1 - max(self.velocity, 0.1) ** (1 / max(dist, 0.1))
         reward_tot = vel_discount * reward_dist
+        print('reward pos:', reward_tot)
         if self.particle and self.particle < max_particle:
             w = self.particle / max_particle
             reward_tot += 0.125 + 0.25 * w
+            print('reward par:', reward_tot)
         if self.z_tip < ground:# case z is bigger then ground
             reward_ground = -0.125
             reward_tot += reward_ground
@@ -511,7 +514,7 @@ class KomodoEnvironment:
 
         p_in_bucket = self.check_particle_in_bucket()
 
-        self.reward = self.reward_function(pos, p_in_bucket)
+        self.reward = self.reward_function2(pos, p_in_bucket)
         print('reward:', round(self.reward,3))
 
         normed_js = self.normalize_joint_state(self.joint_state)
@@ -520,8 +523,8 @@ class KomodoEnvironment:
 
         diff_joint = self.diff_state_coeff * (normed_js - self.last_joint)
 
-        arm_data = np.array([self.particle, self.x_tip, self.z_tip])
-        model_data = np.array([pos[0], self.velocity])
+        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
+        model_data = np.array([pos[0],pos[2], self.velocity])
 
         self.state = np.concatenate((arm_data,model_data,normed_js,diff_joint,self.orientation,self.angular_vel,self.linear_acc_coeff*self.linear_acc)).reshape(1,-1)
 
@@ -536,16 +539,16 @@ class KomodoEnvironment:
             self.done = True
             self.reset()
         elif self.x_tip < self.pile.x_min:  # case bucket is out of important area
-            self.reward += -10
+            self.reward += -0.5
             self.done = False
         elif self.x_tip < self.pile.sand_box_x and self.z_tip > self.pile.z_max:
             self.done = True
-            self.reward += 3
+            self.reward += 0.5
             self.reset()
         else:
             self.done = False
         print('state: ', self.state)
 
-        self.reward = np.clip(self.reward, a_min=-10.0, a_max=10.0)
+        self.reward = np.clip(self.reward, a_min=-1, a_max=1)
         return self.state, self.reward, self.done
 
