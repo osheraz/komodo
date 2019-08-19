@@ -390,7 +390,7 @@ class KomodoEnvironment:
 
         bucket_state = self.get_link_state_proxy(self.get_link_state_req)
         x = bucket_state.link_state.pose.position.x
-        self.bucket_link_x = x       
+        self.bucket_link_x = x
         y = bucket_state.link_state.pose.position.y
         z = bucket_state.link_state.pose.position.z
         self.bucket_link_z = z
@@ -412,7 +412,7 @@ class KomodoEnvironment:
 
         rospy.logdebug('BUCKET: x: '+str(round(x, 2)) +' y: '+str(round(y, 3))+' z: '+str(round(z, 2))+ ' x_tip: '+str(round(self.x_tip, 2)))
         rospy.logdebug('BUCKET: roll: '+str(round(roll,2)) +' pitch: '+str(round(pitch, 3))+' theta: '+str(round(theta, 2)))
-        rospy.logdebug('xv: '+str(np.round(xv, 2)) + ' yv: ' + str(np.round(zv, 2)))
+        rospy.logdebug('xv: '+str(np.round(xv, 2)) + ' zv: ' + str(np.round(zv, 2)))
         rospy.logdebug('xq: '+str(np.round(xq, 2)) + ' zq: ' + str(np.round(zq, 2)))
         rospy.logdebug('Particle in bucket: ' + str(self.particle))
 
@@ -470,30 +470,43 @@ class KomodoEnvironment:
             reward_ori ->  straight orientationn
             reward_particle -> particle in bucket
         """
-        max_particle = 7
-        ground = 0.02
+        # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
+        # bucket_joint = self.joint_state[2]
+        reward_ground = 0
+        reward_arm = 0
+        reward_par = 0
+
+        max_particle = 8
+        ground = 0.02  # Ground treshhold
         bucket_pos = np.array([self.bucket_link_x, self.bucket_link_z])
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
-        dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
-        arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
-        bucket_joint = self.joint_state[2]
+        arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
+        loc_dist = math.sqrt((self.bucket_link_x - self.pile.sand_box_x) ** 2)
 
-        reward_dist = 0.125 * ( 1 - math.tanh(dist) ** 2)
-        vel_discount = 1 - max(self.velocity, 0.1) ** (1 / max(dist, 0.1))
-        reward_tot = vel_discount * reward_dist
-        print('reward pos:', reward_tot)
+        # Positive Rewards:
+        reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
+        vel_discount = (1 - abs(self.velocity)) ** (1 / max(loc_dist, 0.1))
+        reward_tot = reward_dist * vel_discount
+
         if self.particle and self.particle < max_particle:
             w = self.particle / max_particle
-            reward_tot += 0.125 + 0.25 * w
-            print('reward par:', reward_tot)
+            reward_par = 0.125 + 0.25 * w
+            reward_tot += reward_par
+
+        # Negative Rewards:
         if self.z_tip < ground:# case z is bigger then ground
             reward_ground = -0.125
             reward_tot += reward_ground
-            print('reward ground:', reward_ground)
         if self.bucket_link_z > self.pile.z_max and self.bucket_link_x > self.pile.sand_box_x:# not important area
             reward_arm = -1*self.bucket_link_z #0.X
             reward_tot += reward_arm
-            print('reward arm:', reward_arm)
+        if self.x_tip < self.pile.sand_box_x and self.z_tip > self.pile.z_max:
+            reward_tot += 0.5
+            print('Got to end State')
+
+        R = [reward_dist, vel_discount, reward_dist * vel_discount, reward_par, reward_ground, reward_arm]
+        print('Reward-- dist: {:0.2f}   VDiscount: {:0.2f}   Combined: {:0.2f}   Particle: {:0.2f}   Ground: {:0.2f}   Arm: {:0.2f}')\
+            .format(R[0], R[1], R[2], R[3], R[4], R[5])
 
         return reward_tot
 
@@ -501,11 +514,11 @@ class KomodoEnvironment:
 
         np.set_printoptions(precision=1)
 
-        print('action:', action)      # action : [ vel , arm , bucket ]
+        # print('action:', action)      # action : [ vel , arm , bucket ]
         action = action * self.action_range * self.action_coeff
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
         self.actions.move(self.joint_pos)
-        print('joint pos:', self.joint_pos)
+        # print('joint pos:', self.joint_pos)
 
         rospy.sleep(15.0/60.0)
         rospy.wait_for_service('/gazebo/get_model_state')
@@ -515,7 +528,8 @@ class KomodoEnvironment:
         p_in_bucket = self.check_particle_in_bucket()
 
         self.reward = self.reward_function2(pos, p_in_bucket)
-        print('reward:', round(self.reward,3))
+
+        print('Total reward:', round(self.reward,3))
 
         normed_js = self.normalize_joint_state(self.joint_state)
 
@@ -533,21 +547,21 @@ class KomodoEnvironment:
         self.last_action = action
 
         curr_time = rospy.get_time()
-        print('time:', round(curr_time - self.episode_start_time,3))
+        # print('time:', round(curr_time - self.episode_start_time,3))
 
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True
             self.reset()
-        elif self.x_tip < self.pile.x_min:  # case bucket is out of important area
-            self.reward += -0.5
-            self.done = False
+        # elif self.x_tip < self.pile.x_min:  # case bucket is out of important area
+        #     self.reward += -0.5
+        #     self.done = False
         elif self.x_tip < self.pile.sand_box_x and self.z_tip > self.pile.z_max:
             self.done = True
-            self.reward += 0.5
             self.reset()
+            print('Got to end State')
         else:
             self.done = False
-        print('state: ', self.state)
+        # print('state: ', np.round(self.state,2))
 
         self.reward = np.clip(self.reward, a_min=-1, a_max=1)
         return self.state, self.reward, self.done

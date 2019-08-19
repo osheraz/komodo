@@ -271,7 +271,7 @@ class DDPG:
         """Returns actions for given state(s) as per current policy."""
         actions = self.sess.run(self.a2c.actor, feed_dict={self.a2c.input_state:states})
         noise = self.noise.sample()
-        print('noise:',noise)
+        # print('noise:',noise)
         return np.clip(actions + noise,a_min=-1.,a_max=1.).reshape(self.action_shape)
 
     def act_without_noise(self, states):
