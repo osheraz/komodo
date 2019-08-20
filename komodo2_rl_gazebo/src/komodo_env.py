@@ -57,7 +57,7 @@ class Pile:
         self.size = 0.1
         self.radius = 0.035
         self.num_particle = 0
-        self.z_max = 0.3
+        self.z_max = 0.26
         self.x_min = 0
         self.sand_box_x = 0.35
         self.sand_box_y = 0.3
@@ -202,7 +202,8 @@ class KomodoEnvironment:
         self.z_tip = 0
         self.bucket_link_x = 0
         self.bucket_link_z = 0
-        self.velocity = 0 
+        self.velocity = 0
+        self.wheel_vel = 0
 
         #self.link_name_lst = ['komodo2::base_footprint','komodo2::base_link', 'komodo2::rear_left_wheel_link',
         #                    'komodo2::front_left_wheel_link','komodo2::rear_right_wheel_link', 'komodo2::front_right_wheel_link',
@@ -260,8 +261,10 @@ class KomodoEnvironment:
 
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
-        self.max_limit = np.array([0.2, 0.27, 1.0])
-        self.min_limit = np.array([-0.2, -0.3, -0.5])
+
+        self.max_limit = np.array([0.2, 0.32, 0.548])
+        self.min_limit = np.array([-0.2, -0.2, -0.5])
+
         self.action_coef = 1.0 # 3.0
         self.action_range = self.max_limit - self.min_limit
         self.action_mid = (self.max_limit + self.min_limit) / 2.0
@@ -276,6 +279,7 @@ class KomodoEnvironment:
         self.orientation = np.zeros(4)
         self.angular_vel = np.zeros(3)
         self.linear_acc = np.zeros(3)
+
         self.normed_sp = self.normalize_joint_state(self.starting_pos)
         self.state = np.zeros(self.state_shape)
         self.diff_state_coeff = 1.0 # 4.0
@@ -283,7 +287,7 @@ class KomodoEnvironment:
         self.reward = 0.0
         self.done = False
         self.episode_start_time = 0.0
-        self.max_sim_time = 10.0
+        self.max_sim_time = 8.0
         self.action_coeff = 1.0
         self.linear_acc_coeff = 0.1
         self.last_action = np.zeros(self.nb_actions)
@@ -299,6 +303,7 @@ class KomodoEnvironment:
     def joint_state_subscriber_callback(self,joint_state):
         self.joint_state[1]= joint_state.position[0] # arm
         self.joint_state[2] = joint_state.position[1] # bucket
+        self.wheel_vel = joint_state.velocity[2]
 
 
     def imu_subscriber_callback(self,imu):
@@ -485,24 +490,27 @@ class KomodoEnvironment:
 
         # Positive Rewards:
         reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
-        vel_discount = (1 - abs(self.velocity)) ** (1 / max(loc_dist, 0.1))
+        vel_discount = (1 - max(self.wheel_vel,0.1) / 3) ** (1 / max(loc_dist, 0.1))
         reward_tot = reward_dist * vel_discount
+        w = 1 - math.tanh(abs(self.particle - max_particle)) ** 2
 
-        if self.particle and self.particle < max_particle:
-            w = self.particle / max_particle
+        if self.particle:
             reward_par = 0.125 + 0.25 * w
             reward_tot += reward_par
+
+        if self.joint_state[1] > 0 and self.joint_state[2] > -0.2 and self.bucket_link_x < self.pile.sand_box_x:
+            reward_tot += w
 
         # Negative Rewards:
         if self.z_tip < ground:# case z is bigger then ground
             reward_ground = -0.125
             reward_tot += reward_ground
+
         if self.bucket_link_z > self.pile.z_max and self.bucket_link_x > self.pile.sand_box_x:# not important area
-            reward_arm = -1*self.bucket_link_z #0.X
+            reward_arm = -1*self.bucket_link_z  # 0.X
             reward_tot += reward_arm
-        if self.x_tip < self.pile.sand_box_x and self.z_tip > self.pile.z_max:
-            reward_tot += 0.5
-            print('Got to end State')
+
+
 
         R = [reward_dist, vel_discount, reward_dist * vel_discount, reward_par, reward_ground, reward_arm]
         print('Reward-- dist: {:0.2f}   VDiscount: {:0.2f}   Combined: {:0.2f}   Particle: {:0.2f}   Ground: {:0.2f}   Arm: {:0.2f}')\
@@ -514,7 +522,11 @@ class KomodoEnvironment:
 
         np.set_printoptions(precision=1)
 
-        # print('action:', action)      # action : [ vel , arm , bucket ]
+        print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
+                                                                               self.joint_state[2])
+
+        print('Action : {:0.2f} {:0.2f} {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
+
         action = action * self.action_range * self.action_coeff
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
         self.actions.move(self.joint_pos)
@@ -552,17 +564,9 @@ class KomodoEnvironment:
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True
             self.reset()
-        # elif self.x_tip < self.pile.x_min:  # case bucket is out of important area
-        #     self.reward += -0.5
-        #     self.done = False
-        elif self.x_tip < self.pile.sand_box_x and self.z_tip > self.pile.z_max:
-            self.done = True
-            self.reset()
-            print('Got to end State')
         else:
             self.done = False
         # print('state: ', np.round(self.state,2))
-
-        self.reward = np.clip(self.reward, a_min=-1, a_max=1)
+        self.reward = np.clip(self.reward, a_min=-10, a_max=10)
         return self.state, self.reward, self.done
 
