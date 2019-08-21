@@ -233,7 +233,7 @@ class KomodoEnvironment:
         self.model_state_req = SetModelStateRequest()
         self.model_state_req.model_state = ModelState()
         self.model_state_req.model_state.model_name = 'komodo2'
-        self.model_state_req.model_state.pose.position.x = 1.5
+        self.model_state_req.model_state.pose.position.x = 1.0
         self.model_state_req.model_state.pose.position.y = 0.0
         self.model_state_req.model_state.pose.position.z = 0.0
         self.model_state_req.model_state.pose.orientation.x = 0.0
@@ -262,10 +262,10 @@ class KomodoEnvironment:
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
 
-        self.max_limit = np.array([0.2, 0.32, 0.548])
-        self.min_limit = np.array([-0.2, -0.2, -0.5])
+        self.max_limit = np.array([0.1, 0.32, 0.548])
+        self.min_limit = np.array([-0.1, -0.2, -0.5])
 
-        self.action_coef = 1.0 # 3.0
+        self.joint_coef = 3.0 # 3.0
         self.action_range = self.max_limit - self.min_limit
         self.action_mid = (self.max_limit + self.min_limit) / 2.0
         self.joint_pos = self.starting_pos
@@ -293,7 +293,7 @@ class KomodoEnvironment:
         self.last_action = np.zeros(self.nb_actions)
 
     def normalize_joint_state(self,joint_pos):
-        return joint_pos * self.action_coef
+        return joint_pos * self.joint_coef
 
     def velocity_subscriber_callback(self, data):
         vel = -1*data.vector.x
@@ -375,6 +375,7 @@ class KomodoEnvironment:
 
         self.last_joint = self.joint_state
         self.last_pos = pos
+
         diff_joint = np.zeros(self.nb_actions)
         normed_js = self.normalize_joint_state(self.joint_state)
 
@@ -437,7 +438,7 @@ class KomodoEnvironment:
         error_x = abs(0.55- pos[0])
         error_y = pos[1]-self.last_pos[1]
         cur_vel = self.velocity
-        max_particle = 7
+        max_particle = 5
         error_par = abs(particles - max_particle)
         reward_coeff = 10.0
         # reward_pos = self.reward_coeff * (self.last_pos[0] - pos[0] - np.sqrt((pos[1]-self.last_pos[1])**2))
@@ -481,7 +482,7 @@ class KomodoEnvironment:
         reward_arm = 0
         reward_par = 0
 
-        max_particle = 8
+        max_particle = 12
         ground = 0.02  # Ground treshhold
         bucket_pos = np.array([self.bucket_link_x, self.bucket_link_z])
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
@@ -490,31 +491,30 @@ class KomodoEnvironment:
 
         # Positive Rewards:
         reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
-        vel_discount = (1 - max(self.wheel_vel,0.1) / 3) ** (1 / max(loc_dist, 0.1))
-        reward_tot = reward_dist * vel_discount
-        w = 1 - math.tanh(abs(self.particle - max_particle)) ** 2
+        #vel_discount = (1 - max(self.wheel_vel / 3, 0.1)) ** (1 / max(loc_dist, 0.1))
+        reward_tot = reward_dist #* vel_discount
+        print('reward_tot',reward_tot)
+        w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
 
         if self.particle:
             reward_par = 0.125 + 0.25 * w
-            reward_tot += reward_par
-
-        if self.joint_state[1] > 0 and self.joint_state[2] > -0.2 and self.bucket_link_x < self.pile.sand_box_x:
-            reward_tot += w
-
-        # Negative Rewards:
-        if self.z_tip < ground:# case z is bigger then ground
-            reward_ground = -0.125
-            reward_tot += reward_ground
-
-        if self.bucket_link_z > self.pile.z_max and self.bucket_link_x > self.pile.sand_box_x:# not important area
-            reward_arm = -1*self.bucket_link_z  # 0.X
+            reward_arm = -self.joint_state[1] - self.joint_state[2]
+            reward_tot += reward_par + reward_arm
+        else:
+            reward_arm = -0.5*self.bucket_link_z  # 0.X
             reward_tot += reward_arm
 
 
+        # Negative Rewards:
+        # if self.z_tip < ground:# case z is bigger then ground
+        #     reward_ground = -0.125
+        #     reward_tot += reward_ground
 
-        R = [reward_dist, vel_discount, reward_dist * vel_discount, reward_par, reward_ground, reward_arm]
-        print('Reward-- dist: {:0.2f}   VDiscount: {:0.2f}   Combined: {:0.2f}   Particle: {:0.2f}   Ground: {:0.2f}   Arm: {:0.2f}')\
-            .format(R[0], R[1], R[2], R[3], R[4], R[5])
+        # if self.bucket_link_z > self.pile.z_max and self.bucket_link_x > self.pile.sand_box_x:# not important area
+
+        # R = [reward_dist, vel_discount, reward_dist * vel_discount, reward_par, reward_ground, reward_arm]
+        # print('Reward-- dist: {:0.2f}   VDiscount: {:0.2f}   Combined: {:0.2f}   Particle: {:0.2f}   Ground: {:0.2f}   Arm: {:0.2f}')\
+        #     .format(R[0], R[1], R[2], R[3], R[4], R[5])
 
         return reward_tot
 
