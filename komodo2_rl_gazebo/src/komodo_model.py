@@ -24,6 +24,8 @@ import numpy as np
 from std_msgs.msg import Int32MultiArray
 from sklearn.preprocessing import MinMaxScaler
 
+motor_con = 4
+
 
 class Actions:
     def __init__(self):
@@ -67,6 +69,8 @@ class KomodoEnvironment:
     def __init__(self):
 
         rospy.init_node('RL_Node')
+        Hz = 50
+        rate = rospy.Rate(Hz)
 
         self.bucket_init_pos = 0
         self.arm_init_pos = 0
@@ -91,6 +95,9 @@ class KomodoEnvironment:
 
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init, self.arm_init_pos, self.bucket_init_pos])
+        self.fb = np.zeros((motor_con,), dtype=np.int32)
+        self.old_fb = np.zeros((motor_con,), dtype=np.int32)
+        self.velocityCurrent = np.zeros((motor_con,), dtype=np.int32)
 
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
@@ -104,7 +111,7 @@ class KomodoEnvironment:
 
         self.joint_state = np.zeros(self.nb_actions)
 
-        self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
+        self.joint_state_subscriber = rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
         self.velocity_subscriber = rospy.Subscriber('/GPS/fix_velocity',Vector3Stamped,self.velocity_subscriber_callback)
         self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
 
@@ -121,6 +128,21 @@ class KomodoEnvironment:
         self.linear_acc_coeff = 0.1
         self.last_action = np.zeros(self.nb_actions)
 
+
+    def update_fb(self, data):
+        """
+        :param data:
+        :type data:
+        :return:       range      0 - 1023
+        :rtype:
+        """
+        dt = 0.02
+        self.old_fb = np.array(self.fb)
+        self.fb = np.array(data.data)
+        self.velocityCurrent = (self.fb - self.old_fb) / dt  # SensorValue per second
+        self.joint_state[1] = np.interp(self.fb[0],(-0.2, 0.32))
+        self.joint_state[2] = np.interp(self.fb[2],(-0.5, 0.548))
+
     def normalize_joint_state(self,joint_pos):
         return joint_pos * self.joint_coef
 
@@ -133,11 +155,6 @@ class KomodoEnvironment:
         vel = -1*data.vector.x
         self.joint_state[0] = vel # fixed velocity
         self.velocity = vel
-
-    def joint_state_subscriber_callback(self,joint_state):
-        self.joint_state[1]= joint_state.position[0] # arm
-        self.joint_state[2] = joint_state.position[1] # bucket
-        self.wheel_vel = joint_state.velocity[2]
 
     def reset(self):
         self.joint_pos = self.starting_pos
@@ -160,13 +177,13 @@ class KomodoEnvironment:
         print('action:',action)
         action = action * self.action_range * self.action_coeff
         self.joint_pos = np.clip(self.joint_pos + action,a_min=self.min_limit,a_max=self.max_limit)
-        self.actions.move_jtp(self.joint_pos)
+        self.actions.move(self.joint_pos)
         print('joint pos:',self.joint_pos)
 
         rospy.sleep(15.0/60.0)
 
         #normed_js = self.normalize_joint_state(self.joint_state)
-        normed_js = self.normalize_joint_state(self.joint_pos * self.joint_pos_to_state_factor)
+        normed_js = self.normalize_joint_state(self.joint_pos)
 
         diff_joint = self.diff_state_coeff * (normed_js - self.last_joint)
 
