@@ -194,7 +194,9 @@ class KomodoEnvironment:
         self.nb_actions = 3  #  base , arm , bucket
         self.nb_links = 3   # base , arm , bucket
 
-        self.state_shape = (self.nb_actions * 2 + 8 + 4 + 3 + 3,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
+        # self.state_shape = (self.nb_actions * 2 + 8 + 4 + 3 + 3,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
+        self.state_shape = (self.nb_actions * 2 + 7,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
+
         self.action_shape = (self.nb_actions,)
         self.flag = True
         self.particle = 0
@@ -380,10 +382,13 @@ class KomodoEnvironment:
         normed_js = self.normalize_joint_state(self.joint_state)
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
-        model_data = np.array([pos[0],pos[2], self.velocity])
+        model_data = np.array([pos[0],pos[2]])
+        # model_data = np.array([pos[0],pos[2], self.velocity])
 
-        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint, self.orientation, self.angular_vel,
-                                     self.linear_acc_coeff*self.linear_acc)).reshape(1, -1)
+        # self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint, self.orientation, self.angular_vel,
+        #                              self.linear_acc_coeff*self.linear_acc)).reshape(1, -1)
+        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1, -1)
+
         self.episode_start_time = rospy.get_time()
         self.last_action = np.zeros(self.nb_actions)
         return self.state, done
@@ -394,7 +399,12 @@ class KomodoEnvironment:
         d1 = 0.124
         d2 = 0.1
 
+        self.get_link_state_req.reference_frame = 'base_footprint'
         bucket_state = self.get_link_state_proxy(self.get_link_state_req)
+        # print('fp',bucket_state)
+        self.get_link_state_req.reference_frame = 'world'
+        bucket_state = self.get_link_state_proxy(self.get_link_state_req)
+        # print('w',bucket_state)
         x = bucket_state.link_state.pose.position.x
         self.bucket_link_x = x
         y = bucket_state.link_state.pose.position.y
@@ -424,48 +434,8 @@ class KomodoEnvironment:
 
         return self.particle
 
+
     def reward_function(self, pos, particles):
-        """Update reward for a given State.
-        where:
-            pos -> current position
-            particles -> number of particle in the bucket
-        Params
-        ======
-            reward_pos ->  going along x axis
-            reward_ori ->  straight orientationn
-            reward_partcile -> particle in bucket
-        """
-        error_x = abs(0.55- pos[0])
-        error_y = pos[1]-self.last_pos[1]
-        cur_vel = self.velocity
-        max_particle = 5
-        error_par = abs(particles - max_particle)
-        reward_coeff = 10.0
-        # reward_pos = self.reward_coeff * (self.last_pos[0] - pos[0] - np.sqrt((pos[1]-self.last_pos[1])**2))
-        # reward_pos = self.reward_coeff * (-np.sqrt(error_x**2) - np.sqrt(error_y**2))
-        dist_reward = 1 - error_x ** 0.4
-        vel_discount = (1 - max(cur_vel, 0.1)**(1/max(error_x, 0.1)))
-        reward_pos = reward_coeff * vel_discount * dist_reward
-
-        reward_ori = 0 * np.sqrt(np.sum(self.orientation ** 2))
-        reward_particle = 3 * (1 - error_par ** 0.4)  # TODO FIX!
-        reward_tot = reward_pos + reward_ori + reward_particle
-
-        print('reward pos:', reward_pos)
-        print('reward ori:', reward_ori)
-        print('reward par:', reward_particle)
-        if self.z_tip < 0.02: # case z is bigger then ground
-            reward_ground = -100*abs(self.z_tip)      #0.0X
-            reward_tot += reward_ground
-            print('reward arm:', reward_ground)
-        elif self.bucket_link_z > self.pile.z_max and self.bucket_link_x > 0.35:
-            reward_arm = -10*self.bucket_link_z   #0.X
-            reward_tot += reward_arm
-            print('reward arm:', reward_arm)
-
-        return reward_tot
-
-    def reward_function2(self, pos, particles):
         """Update reward for a given State.
         where:
             pos -> current position
@@ -493,7 +463,7 @@ class KomodoEnvironment:
         reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
         #vel_discount = (1 - max(self.wheel_vel / 3, 0.1)) ** (1 / max(loc_dist, 0.1))
         reward_tot = reward_dist #* vel_discount
-        print('reward_tot',reward_tot)
+        #print('reward_tot',reward_tot)
         w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
 
         if self.particle:
@@ -522,10 +492,11 @@ class KomodoEnvironment:
 
         np.set_printoptions(precision=1)
 
-        print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
-                                                                               self.joint_state[2])
+        # print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
+        #                                                                        self.joint_state[2])
+        print('state:   {}'.format(np.round(self.state,2)))
 
-        print('Action : {:0.2f} {:0.2f} {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
+        print('action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
 
         action = action * self.action_range * self.action_coeff
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
@@ -539,34 +510,33 @@ class KomodoEnvironment:
 
         p_in_bucket = self.check_particle_in_bucket()
 
-        self.reward = self.reward_function2(pos, p_in_bucket)
+        self.reward = self.reward_function(pos, p_in_bucket)
 
-        print('Total reward:', round(self.reward,3))
+        # print('reward:    {:0.2f}').format(self.reward)
 
         normed_js = self.normalize_joint_state(self.joint_state)
-
-        #self.reward -= 0.25 * np.sqrt(np.sum((self.normed_sp - normed_js)**2))
 
         diff_joint = self.diff_state_coeff * (normed_js - self.last_joint)
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
-        model_data = np.array([pos[0],pos[2], self.velocity])
+        model_data = np.array([pos[0],pos[2]])
 
-        self.state = np.concatenate((arm_data,model_data,normed_js,diff_joint,self.orientation,self.angular_vel,self.linear_acc_coeff*self.linear_acc)).reshape(1,-1)
+        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1,-1)
 
         self.last_joint = normed_js
         self.last_pos = pos
         self.last_action = action
 
         curr_time = rospy.get_time()
-        # print('time:', round(curr_time - self.episode_start_time,3))
+        print('time:    {:0.2f}').format(curr_time - self.episode_start_time)
 
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True
             self.reset()
         else:
             self.done = False
-        # print('state: ', np.round(self.state,2))
+
+        print('next state:  {}').format(np.round(self.state,2))
         self.reward = np.clip(self.reward, a_min=-10, a_max=10)
         return self.state, self.reward, self.done
 
