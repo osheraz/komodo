@@ -168,12 +168,12 @@ def pcl_callback(pcl_msg):
     filter_axis ='z'
     axis_min = 0.0
     axis_max =0.25
-    # cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
+    cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
 
     filter_axis = 'x'
     axis_min = 0
     axis_max = 1.0
-    # cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
+    cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
 
 
     # TODO: RANSAC Plane Segmentation
