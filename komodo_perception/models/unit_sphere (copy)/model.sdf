@@ -1,0 +1,45 @@
+<sdf version='1.6'>
+  <model name='sand_box_osher'>
+    <link name='sand_box_osher'>
+      <pose frame=''>0 0 0 0 -0 0</pose>
+      <inertial>
+        <pose frame=''>-0.35285 -0.305 0.11027 0 -0 0</pose>
+        <mass>1000.892</mass>
+        <inertia>
+          <ixx>130.2204</ixx>
+          <ixy>-220.5538e-15</ixy>
+          <ixz>-4.85191</ixz>
+          <iyy>276.363</iyy>
+          <iyz>-77.9029e-15</iyz>
+          <izz>135.62</izz>
+        </inertia>
+      </inertial>
+      <collision name='sand_box_osher_collision'>
+        <pose frame=''>0 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://sand_box_osher/meshes/sand_box_osher.STL</uri>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name='sand_box_osher_visual'>
+        <pose frame=''>0 0 0 1.5708 -0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://sand_box_osher/meshes/sand_box_osher.STL</uri>
+          </mesh>
+        </geometry>
+          <material>
+                    <ambient>0.3 0.25 0.1 1</ambient>
+                    <diffuse>0.7 0.6 0.4 1</diffuse>
+                    <specular>0.01 0.005 0.001 1</specular>
+                    <emissive>0 0 0 1</emissive>
+  </material>
+  	<transparency>0.5</transparency>
+
+      </visual>
+    </link>
+  </model>
+</sdf>

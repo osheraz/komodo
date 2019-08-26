@@ -16,7 +16,7 @@
     <arg name="Y" default="0.0" />
     <arg name="moveit" default="false"/>
     <arg name="rgb_cam" default="false"/>
-    <arg name="depth_cam" default="false"/>
+    <arg name="depth_cam" default="true"/>
     <arg name="lidar" default="false"/>
     <arg name="gmapping" default="false"/>
     <arg name="hector_slam" default="false"/>
