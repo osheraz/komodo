@@ -68,7 +68,7 @@ def pcl_to_ros(pcl_array):
     ros_msg = PointCloud2()
 
     ros_msg.header.stamp = rospy.Time.now()
-    ros_msg.header.frame_id = "world"
+    ros_msg.header.frame_id = "base_footprint"
 
     ros_msg.height = 1
     ros_msg.width = pcl_array.size

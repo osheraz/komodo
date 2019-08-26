@@ -20,7 +20,6 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import Float64
 from std_msgs.msg import Int32
 from std_msgs.msg import String
-from pr2_robot.srv import *
 from rospy_message_converter import message_converter
 import yaml
 
@@ -153,6 +152,7 @@ def do_euclidean_clustering(white_cloud):
 # Callback function for your Point Cloud Subscriber
 def pcl_callback(pcl_msg):
     # Exercise-2 TODOs:
+    print('PCL Recivied')
 
     # TODO: Convert ROS msg to PCL data
     cloud = ros_to_pcl(pcl_msg)
@@ -166,14 +166,14 @@ def pcl_callback(pcl_msg):
 
     # TODO: PassThrough Filter
     filter_axis ='z'
-    axis_min = 0.44
-    axis_max =0.85
-    cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
+    axis_min = 0.0
+    axis_max =0.25
+    # cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
 
     filter_axis = 'x'
-    axis_min = 0.33
+    axis_min = 0
     axis_max = 1.0
-    cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
+    # cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
 
 
     # TODO: RANSAC Plane Segmentation
