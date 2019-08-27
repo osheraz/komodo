@@ -27,7 +27,7 @@ def make_label(text, position, id = 0 ,duration = 5.0, color=[1.0,1.0,1.0]):
             Marker: A text view marker which can be published to RViz
     """
     marker = Marker()
-    marker.header.frame_id = '/world'
+    marker.header.frame_id = '/base_footprint'
     marker.id = id
     marker.type = marker.TEXT_VIEW_FACING
     marker.text = text

@@ -135,18 +135,33 @@ def do_euclidean_clustering(white_cloud):
     cluster_color = get_color_list(len(cluster_indices))
 
     color_cluster_point_list = []
+    cluster_sep = []
 
     for j, indices in enumerate(cluster_indices):
         for i, indice in enumerate(indices):
-            color_cluster_point_list.append([white_cloud[indice][0],
+            cluster_sep = ([white_cloud[indice][0],
                                              white_cloud[indice][1],
                                              white_cloud[indice][2],
                                              rgb_to_float(cluster_color[j])])
+            color_cluster_point_list.append(cluster_sep)
 
     cluster_cloud = pcl.PointCloud_PointXYZRGB()
     cluster_cloud.from_list(color_cluster_point_list)
     return cluster_cloud,cluster_indices
 
+def get_centeroid(cloud):
+
+    # TODO: Get the PointCloud for a given object and obtain it's centroid
+    points_arr = np.asarray(cloud)
+    centroids = []  # to be list of tuples (x, y, z)
+    centroid = np.mean(points_arr, axis=0)[:3]
+    centroids.append(centroid)
+
+    object_pose = Pose()
+    object_pose.position.x = float(centroid[0])
+    object_pose.position.y = float(centroid[1])
+    object_pose.position.z = float(centroid[2])
+    print(centroid)
 
 
 # Callback function for your Point Cloud Subscriber
@@ -168,12 +183,12 @@ def pcl_callback(pcl_msg):
     filter_axis ='z'
     axis_min = 0.0
     axis_max =0.25
-    cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
+    # cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
 
     filter_axis = 'x'
     axis_min = 0
     axis_max = 1.0
-    cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
+    # cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
 
 
     # TODO: RANSAC Plane Segmentation
@@ -187,7 +202,6 @@ def pcl_callback(pcl_msg):
     white_cloud= XYZRGB_to_XYZ(cloud_objects)
     cluster_cloud,cluster_indices = do_euclidean_clustering(white_cloud)
 
-
     # TODO: Convert PCL data to ROS messages
     ros_cloud_objects = pcl_to_ros(cloud_objects)
     ros_cloud_table = pcl_to_ros(cloud_table)
@@ -198,9 +212,7 @@ def pcl_callback(pcl_msg):
     pcl_table_pub.publish(ros_cloud_table)
     pcl_cluster_pub.publish(ros_cluster_cloud)
 
-    # Exercise-3 TODOs:
-
-    # Classify the clusters! (loop through each detected cluster one at a time)
+    # TODO: Classify the clusters! (loop through each detected cluster one at a time)
     detected_objects_labels = []
     detected_objects = []
 
@@ -214,6 +226,8 @@ def pcl_callback(pcl_msg):
         normals = get_normals(ros_cluster)
         nhists = compute_normal_histograms(normals)
         feature = np.concatenate((chists, nhists))
+        get_centeroid(pcl_cluster)
+
 
 
 
