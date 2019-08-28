@@ -66,6 +66,7 @@ class Pile:
         self.sand_box_height = 0.25
         self.center_x = self.sand_box_x / 2
         self.center_z = self.sand_box_z / 2
+        self.HALF_KOMODO = 0.53 / 2
         self.spawner = Spawner()
         self.spawn_srv = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
         self.model_state_proxy = rospy.ServiceProxy('/gazebo/set_model_state',SetModelState)
@@ -157,9 +158,9 @@ class Pile:
         for i in range(1, num_p+1):
             get_particle_state_req = GetModelStateRequest()
             get_particle_state_req.model_name = 'particle'+str(i)
-            get_particle_state_req.relative_entity_name = 'world'
+            get_particle_state_req.relative_entity_name = 'base_footprint' # 'world'
             particle_state = self.get_model_state_proxy(get_particle_state_req)
-            x = particle_state.pose.position.x
+            x = abs(particle_state.pose.position.x) + self.HALF_KOMODO
             y = particle_state.pose.position.y
             z = particle_state.pose.position.z
             orientation = particle_state.pose.orientation
@@ -194,6 +195,7 @@ class KomodoEnvironment:
         self.vel_init = 0
         self.nb_actions = 3  #  base , arm , bucket
         self.nb_links = 3   # base , arm , bucket
+        self.HALF_KOMODO = 0.53 / 2
 
         # self.state_shape = (self.nb_actions * 2 + 8 + 4 + 3 + 3,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
         self.state_shape = (self.nb_actions * 2 + 7,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
@@ -399,15 +401,15 @@ class KomodoEnvironment:
         dp = 0.215  # bucket geometry
         d1 = 0.124
         d2 = 0.1
-
         self.get_link_state_req.reference_frame = 'base_footprint'
         bucket_state = self.get_link_state_proxy(self.get_link_state_req)
-        # print('fp',bucket_state)
-        self.get_link_state_req.reference_frame = 'world'
-        bucket_state = self.get_link_state_proxy(self.get_link_state_req)
-        # print('w',bucket_state)
+
+        # self.get_link_state_req.reference_frame = 'world'
+        # bucket_state = self.get_link_state_proxy(self.get_link_state_req)
+
         x = bucket_state.link_state.pose.position.x
-        self.bucket_link_x = x
+
+        self.bucket_link_x = abs(x) + self.HALF_KOMODO
         y = bucket_state.link_state.pose.position.y
         z = bucket_state.link_state.pose.position.z
         self.bucket_link_z = z
@@ -415,14 +417,16 @@ class KomodoEnvironment:
         (roll, pitch, theta) = euler_from_quaternion(
             [orientation.x, orientation.y, orientation.z, orientation.w])
 
-        self.x_tip = x - dp*np.cos(roll)
+        self.x_tip = self.bucket_link_x + dp*np.cos(roll)
         self.z_tip = z + dp*np.sin(roll)
-        x_up = x - d1*np.cos(roll + math.radians(46))
+        x_up = self.bucket_link_x + d1*np.cos(roll + math.radians(46))
         z_up = z + d1*np.sin(roll + math.radians(46))
-        x_down = x - d2*np.cos(math.radians(41) - roll)
+        x_down = self.bucket_link_x + d2*np.cos(math.radians(41) - roll)
         z_down = z - d2*np.sin(math.radians(41) - roll)
-        xv = np.array([x, x_up, self.x_tip, x_down, x])
+
+        xv = np.array([self.bucket_link_x, x_up, self.x_tip, x_down, self.bucket_link_x])
         zv = np.array([z, z_up, self.z_tip, z_down, z])
+
         xq, zq = self.pile.particle_location(self.pile.num_particle)
         particle_in_bucket = self.pile.in_bucket(xq, zq, xv, zv)
         self.particle = (particle_in_bucket == 1).sum()
@@ -455,16 +459,16 @@ class KomodoEnvironment:
 
         max_particle = 12
         ground = 0.02  # Ground treshhold
-        bucket_pos = np.array([self.bucket_link_x, self.bucket_link_z])
+
+        bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
+        bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
         arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
         loc_dist = math.sqrt((self.bucket_link_x - self.pile.sand_box_x) ** 2)
 
         # Positive Rewards:
         reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
-        #vel_discount = (1 - max(self.wheel_vel / 3, 0.1)) ** (1 / max(loc_dist, 0.1))
-        reward_tot = reward_dist #* vel_discount
-        #print('reward_tot',reward_tot)
+        reward_tot = reward_dist
         w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
 
         if self.particle:
@@ -513,7 +517,7 @@ class KomodoEnvironment:
 
         self.reward = self.reward_function(pos, p_in_bucket)
 
-        # print('reward:    {:0.2f}').format(self.reward)
+        print('reward:    {:0.2f}').format(self.reward)
 
         normed_js = self.normalize_joint_state(self.joint_state)
 

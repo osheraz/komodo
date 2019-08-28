@@ -31,7 +31,7 @@ for i in range(max_episode):
         step_num += 1
         action = agent.step(observation, reward, done)
         observation, reward, done = env.step(action)
-        # print('reward:',reward,'episode:', i, 'step:',step_num,'curr high eps reward:',curr_highest_eps_reward, 'saved:',save_count, 'cutoff count:', cutoff_count)
+        print('reward:',reward,'episode:', i, 'step:',step_num,'curr high eps reward:',curr_highest_eps_reward, 'saved:',save_count, 'cutoff count:', cutoff_count)
     action, eps_reward = agent.step(observation, reward, done)
     tot_rewards.append(eps_reward)
     if eps_reward > curr_highest_eps_reward:
