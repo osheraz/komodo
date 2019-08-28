@@ -18,6 +18,7 @@ from gazebo_msgs.srv import GetModelState, GetModelStateRequest, GetLinkState, G
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SpawnModel, SpawnModelRequest, SpawnModelResponse
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Twist, Vector3Stamped
 import numpy as np
@@ -97,7 +98,7 @@ class KomodoEnvironment:
         self.starting_pos = np.array([self.vel_init, self.arm_init_pos, self.bucket_init_pos])
         self.fb = np.zeros((motor_con,), dtype=np.int32)
         self.old_fb = np.zeros((motor_con,), dtype=np.int32)
-        self.velocityCurrent = np.zeros((motor_con,), dtype=np.int32)
+        self.velocity_motor = np.zeros((motor_con,), dtype=np.int32)
 
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
@@ -112,7 +113,7 @@ class KomodoEnvironment:
         self.joint_state = np.zeros(self.nb_actions)
 
         self.joint_state_subscriber = rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
-        self.velocity_subscriber = rospy.Subscriber('/GPS/fix_velocity',Vector3Stamped,self.velocity_subscriber_callback)
+        self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
         self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
 
         self.orientation = np.zeros(4)
@@ -139,7 +140,7 @@ class KomodoEnvironment:
         dt = 0.02
         self.old_fb = np.array(self.fb)
         self.fb = np.array(data.data)
-        self.velocityCurrent = (self.fb - self.old_fb) / dt  # SensorValue per second
+        self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
         self.joint_state[1] = np.interp(self.fb[0],(-0.2, 0.32))
         self.joint_state[2] = np.interp(self.fb[2],(-0.5, 0.548))
 
@@ -152,9 +153,15 @@ class KomodoEnvironment:
         self.linear_acc = np.array([imu.linear_acceleration.x,imu.linear_acceleration.y,imu.linear_acceleration.z])
 
     def velocity_subscriber_callback(self, data):
-        vel = -1*data.vector.x
+        vel = data.twist.twist.linear.x
         self.joint_state[0] = vel # fixed velocity
         self.velocity = vel
+
+    def check_particle_in_bucket(self):
+        return 'wow'
+
+    def dump_pile(self):
+        return 'dumped'
 
     def reset(self):
         self.joint_pos = self.starting_pos
@@ -164,16 +171,21 @@ class KomodoEnvironment:
         self.last_joint = self.joint_state
         diff_joint = np.zeros(self.nb_actions)
         normed_js = self.normalize_joint_state(self.joint_state)
+        self.particle = 0
 
-        model_state = self.get_model_state_proxy(self.get_model_state_req)
-        pos = np.array([model_state.pose.position.x, model_state.pose.position.y, model_state.pose.position.z])
+        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
+        model_data = np.array([x,z])
 
-        self.state = np.concatenate((normed_js,diff_joint,self.orientation,self.angular_vel,self.linear_acc_coeff*self.linear_acc)).reshape(1,-1)
+        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1, -1)
+
         self.last_action = np.zeros(self.nb_actions)
 
         return self.state
 
     def step(self, action):
+
+        self.particle = self.check_particle_in_bucket() # update particle in bucket
+
         print('action:',action)
         action = action * self.action_range * self.action_coeff
         self.joint_pos = np.clip(self.joint_pos + action,a_min=self.min_limit,a_max=self.max_limit)

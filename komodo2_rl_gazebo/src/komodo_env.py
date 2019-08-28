@@ -5,6 +5,7 @@ import rospy
 import time
 import numpy as np
 from std_srvs.srv import Empty
+from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
 from sensor_msgs.msg import JointState
 from gazebo_msgs.srv import SetModelState, SetModelStateRequest, SetModelConfiguration, SetModelConfigurationRequest
@@ -274,7 +275,7 @@ class KomodoEnvironment:
 
         self.joint_state = np.zeros(self.nb_actions)
         self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
-        self.velocity_subscriber = rospy.Subscriber('/GPS/fix_velocity',Vector3Stamped,self.velocity_subscriber_callback)
+        self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
         self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
 
 
@@ -298,7 +299,7 @@ class KomodoEnvironment:
         return joint_pos * self.joint_coef
 
     def velocity_subscriber_callback(self, data):
-        vel = -1*data.vector.x
+        vel = data.twist.twist.linear.x
         self.joint_state[0] = vel # fixed velocity
         self.velocity = vel
 
