@@ -184,24 +184,20 @@ class KomodoEnvironment:
     def __init__(self):
 
         rospy.init_node('RL_Node')
-        self.pile = Pile() #(1.75, 2.8, 1.05, 0.34)
+        
+        # TODO:  Pile information
+        self.pile = Pile() # (1.75, 2.8, 1.05, 0.34)
         self.pile.length = 1.75
         self.pile.width = 2.8
         self.pile.height = 1.05
         self.pile.size = 0.34
+        self.pile_flag = True
 
+        # TODO: Robot information
         self.bucket_init_pos = 0
         self.arm_init_pos = 0
         self.vel_init = 0
-        self.nb_actions = 3  #  base , arm , bucket
-        self.nb_links = 3   # base , arm , bucket
         self.HALF_KOMODO = 0.53 / 2
-
-        # self.state_shape = (self.nb_actions * 2 + 8 + 4 + 3 + 3,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
-        self.state_shape = (self.nb_actions * 2 + 7,) # joint states + diff + orientation + lin acc + w acc + arm_state(3) + model data(2)
-
-        self.action_shape = (self.nb_actions,)
-        self.flag = True
         self.particle = 0
         self.x_tip = 0
         self.z_tip = 0
@@ -209,20 +205,39 @@ class KomodoEnvironment:
         self.bucket_link_z = 0
         self.velocity = 0
         self.wheel_vel = 0
-
-        #self.link_name_lst = ['komodo2::base_footprint','komodo2::base_link', 'komodo2::rear_left_wheel_link',
-        #                    'komodo2::front_left_wheel_link','komodo2::rear_right_wheel_link', 'komodo2::front_right_wheel_link',
-        #                      'komodo2::base_arm','komodo2::arm', 'komodo2::bucket']
-
-        #self.link_name_lst = ['komodo2::base_footprint','komodo2::arm', 'komodo2::bucket']
-
         self.joint_name_lst = ['arm_joint', 'bucket_joint', 'front_left_wheel_joint', 'front_right_wheel_joint',
                                'rear_left_wheel_joint', 'rear_right_wheel_joint']
+        self.last_pos = np.zeros(3)
+        self.last_ori = np.zeros(4)
+        self.max_limit = np.array([0.1, 0.32, 0.548])
+        self.min_limit = np.array([-0.1, -0.2, -0.5])
+        self.orientation = np.zeros(4)
+        self.angular_vel = np.zeros(3)
+        self.linear_acc = np.zeros(3)
 
+        # TODO: RL information
+        self.nb_actions = 3  # base , arm , bucket
+        self.state_shape = (self.nb_actions * 2 + 7,)
+        self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
+        self.action_range = self.max_limit - self.min_limit
+        self.action_mid = (self.max_limit + self.min_limit) / 2.0
+        self.last_action = np.zeros(self.nb_actions)
+        self.joint_state = np.zeros(self.nb_actions)
+        self.joint_pos = self.starting_pos
+        self.state = np.zeros(self.state_shape)
+        self.reward = 0.0
+        self.done = False
+        self.episode_start_time = 0.0
+        self.max_sim_time = 8.0
 
-        #Gazebo stuff
+        # TODO: Robot information Subscribers
+        self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
+        self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
+        self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
+
+        # TODO: Gazebo stuff
         self.pause_proxy = rospy.ServiceProxy('/gazebo/pause_physics',Empty)
         self.unpause_proxy = rospy.ServiceProxy('/gazebo/unpause_physics',Empty)
         self.reset_world = rospy.ServiceProxy('/gazebo/reset_world',Empty)
@@ -258,47 +273,14 @@ class KomodoEnvironment:
         self.get_model_state_req.model_name = 'komodo2'
         self.get_model_state_req.relative_entity_name = 'world'
 
-
         self.get_link_state_proxy = rospy.ServiceProxy('/gazebo/get_link_state',GetLinkState)
         self.get_link_state_req = GetLinkStateRequest()
         self.get_link_state_req.link_name = 'bucket'
         self.get_link_state_req.reference_frame = 'world'
 
-        self.last_pos = np.zeros(3)
-        self.last_ori = np.zeros(4)
-
-        self.max_limit = np.array([0.1, 0.32, 0.548])
-        self.min_limit = np.array([-0.1, -0.2, -0.5])
-
-        self.joint_coef = 3.0 # 3.0
-        self.action_range = self.max_limit - self.min_limit
-        self.action_mid = (self.max_limit + self.min_limit) / 2.0
-        self.joint_pos = self.starting_pos
-
-        self.joint_state = np.zeros(self.nb_actions)
-        self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
-        self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
-        self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
-
-
-        self.orientation = np.zeros(4)
-        self.angular_vel = np.zeros(3)
-        self.linear_acc = np.zeros(3)
-
-        self.normed_sp = self.normalize_joint_state(self.starting_pos)
-        self.state = np.zeros(self.state_shape)
-        self.diff_state_coeff = 1.0 # 4.0
-        self.reward_coeff = 10.0
-        self.reward = 0.0
-        self.done = False
-        self.episode_start_time = 0.0
-        self.max_sim_time = 8.0
-        self.action_coeff = 1.0
-        self.linear_acc_coeff = 0.1
-        self.last_action = np.zeros(self.nb_actions)
-
     def normalize_joint_state(self,joint_pos):
-        return joint_pos * self.joint_coef
+        joint_coef = 3.0 # 3.0
+        return joint_pos * joint_coef
 
     def velocity_subscriber_callback(self, data):
         vel = data.twist.twist.linear.x
@@ -309,7 +291,6 @@ class KomodoEnvironment:
         self.joint_state[1]= joint_state.position[0] # arm
         self.joint_state[2] = joint_state.position[1] # bucket
         self.wheel_vel = joint_state.velocity[2]
-
 
     def imu_subscriber_callback(self,imu):
         self.orientation = np.array([imu.orientation.x,imu.orientation.y,imu.orientation.z,imu.orientation.w])
@@ -344,21 +325,13 @@ class KomodoEnvironment:
         #spawner
         rospy.wait_for_service('/gazebo/spawn_sdf_model')
         try:
-            if self.flag:
+            if self.pile_flag:
                 self.pile.create_pile()
-                self.flag = False
+                self.pile_flag = False
             else:
                 self.pile.set_pile()
         except rospy.ServiceException as e:
             print('/gazebo/unpause_physics service call failed')
-
-        # reset world - TODO: Fix, Causing problems
-        # rospy.wait_for_service('/gazebo/reset_world')
-        # try:
-        #     self.reset_world()
-        #     rospy.loginfo('Restart')
-        # except rospy.ServiceException as e:
-        #     print('/gazebo/reset_world service call failed')
 
         #unpause physics
         rospy.wait_for_service('/gazebo/unpause_physics')
@@ -386,10 +359,7 @@ class KomodoEnvironment:
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
         model_data = np.array([pos[0],pos[2]])
-        # model_data = np.array([pos[0],pos[2], self.velocity])
 
-        # self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint, self.orientation, self.angular_vel,
-        #                              self.linear_acc_coeff*self.linear_acc)).reshape(1, -1)
         self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1, -1)
 
         self.episode_start_time = rospy.get_time()
@@ -503,7 +473,7 @@ class KomodoEnvironment:
 
         print('action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
 
-        action = action * self.action_range * self.action_coeff
+        action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
         self.actions.move(self.joint_pos)
         # print('joint pos:', self.joint_pos)
@@ -519,9 +489,9 @@ class KomodoEnvironment:
 
         print('reward:    {:0.2f}').format(self.reward)
 
-        normed_js = self.normalize_joint_state(self.joint_state)
+        normed_js = self.normalize_joint_state(self.joint_state) # TODO: Check without diff + Pos Z
 
-        diff_joint = self.diff_state_coeff * (normed_js - self.last_joint)
+        diff_joint = (normed_js - self.last_joint)
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
         model_data = np.array([pos[0],pos[2]])
