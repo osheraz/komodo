@@ -9,8 +9,9 @@ from sensor_msgs.msg import Imu, LaserScan
 from geometry_msgs.msg import Twist, Vector3Stamped
 import numpy as np
 from std_msgs.msg import Int32MultiArray, Float32MultiArray
-
+from scipy.interpolate import interp1d
 motor_con = 4
+
 
 
 class Actions:
@@ -45,8 +46,8 @@ class Actions:
 
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
-        des_cmd[:2] = np.interp(des_cmd[:2],(250, 950))
-        des_cmd[2:] = np.interp(des_cmd[:2],(30, 450))
+        des_cmd[:2] = np.interp(des_cmd[:2], (-0.2 , 0.32), (250, 950))
+        des_cmd[2:] = np.interp(des_cmd[2:], (-0.5, 0.548), (30, 450))
         return des_cmd
 
 
@@ -95,7 +96,7 @@ class KomodoEnvironment:
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 + 7,)
+        self.state_shape = (self.nb_actions * 2 + 6,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -119,8 +120,8 @@ class KomodoEnvironment:
         self.old_fb = np.array(self.fb)
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
-        self.joint_state[1] = np.interp(self.fb[0],(-0.2, 0.32))
-        self.joint_state[2] = np.interp(self.fb[2],(-0.5, 0.548))
+        self.joint_state[1] = np.interp(self.fb[0],(250, 950),(-0.2, 0.32))
+        self.joint_state[2] = np.interp(self.fb[2],(30, 450),(-0.5, 0.548))
 
     def update_distace(self,msg):
         """

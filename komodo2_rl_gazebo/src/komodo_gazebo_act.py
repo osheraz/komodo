@@ -1,7 +1,7 @@
 from __future__ import print_function
 from komodo_env import KomodoEnvironment
 from ddpg import DDPG
-
+import numpy as np
 
 env = KomodoEnvironment()
 state_shape = env.state_shape
@@ -17,9 +17,15 @@ for i in range(max_episode):
     action = agent.act_without_noise(observation)
     observation, reward, done = env.step(action)
     step_num = 0
+    observation_arr = observation
     while done == False:
         step_num += 1
         action = agent.act_without_noise(observation)
         observation, reward, done = env.step(action)
+        observation_arr = np.vstack((observation_arr, observation))
         print('reward:',round(reward,3),'episode:', i, 'step:',step_num)
         print('---------------------------------------------------------')
+
+import matplotlib.pyplot as plt
+plt.plot(observation_arr[:][:])
+plt.show()
