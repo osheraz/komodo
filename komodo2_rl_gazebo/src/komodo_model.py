@@ -47,7 +47,7 @@ class Actions:
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
         des_cmd[:2] = np.interp(des_cmd[:2], (-0.2 , 0.32), (250, 950))
-        des_cmd[2:] = np.interp(des_cmd[2:], (-0.5, 0.548), (30, 450))
+        des_cmd[2:] = np.interp(des_cmd[2:], (-0.5, 0.548), (10, 450))
         return des_cmd
 
 
@@ -121,7 +121,7 @@ class KomodoEnvironment:
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
         self.joint_state[1] = np.interp(self.fb[0],(250, 950),(-0.2, 0.32))
-        self.joint_state[2] = np.interp(self.fb[2],(30, 450),(-0.5, 0.548))
+        self.joint_state[2] = np.interp(self.fb[2],(10, 450),(-0.5, 0.548))
 
     def update_distace(self,msg):
         """
