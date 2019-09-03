@@ -497,7 +497,6 @@ class KomodoEnvironment:
         model_data = np.array([pos[0]])
 
         self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1,-1)
-        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1,-1)
 
         self.last_joint = normed_js
         self.last_pos = pos
