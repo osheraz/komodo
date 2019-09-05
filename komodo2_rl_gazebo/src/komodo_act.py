@@ -1,10 +1,10 @@
 from __future__ import print_function
-from komodo_model import komodoEnvironment
+from komodo_model import KomodoEnvironment
 from ddpg import DDPG
 import time
 import numpy as np
 
-env = komodoEnvironment()
+env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
 agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,

@@ -18,11 +18,13 @@ for i in range(max_episode):
     observation, reward, done = env.step(action)
     step_num = 0
     observation_arr = observation
+    action_arr = action
     while done == False:
         step_num += 1
         action = agent.act_without_noise(observation)
         observation, reward, done = env.step(action)
         observation_arr = np.vstack((observation_arr, observation))
+        action_arr= np.vstack((action_arr, action))
         print('reward:',round(reward,3),'episode:', i, 'step:',step_num)
         print('---------------------------------------------------------')
 

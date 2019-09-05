@@ -71,7 +71,7 @@ class KomodoEnvironment:
         self.bucket_link_z = 0
         self.velocity = 0
         self.wheel_vel = 0
-        self.position_from_pile = 0
+        self.position_from_pile = np.array([0])
         self.joint_name_lst = ['arm_joint', 'bucket_joint', 'front_left_wheel_joint', 'front_right_wheel_joint',
                                'rear_left_wheel_joint', 'rear_right_wheel_joint']
         self.last_pos = np.zeros(3)
@@ -87,16 +87,9 @@ class KomodoEnvironment:
         self.old_fb = np.zeros((motor_con,), dtype=np.int32)
         self.velocity_motor = np.zeros((motor_con,), dtype=np.int32)
 
-        # TODO: Robot information Subscribers
-        self.joint_state_subscriber = rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
-        self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
-        self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
-        self.distance_subscriber = rospy.Subscriber('/scan', LaserScan, self.update_distace)
-        self.arm_data_subscriber = rospy.Subscriber('/arm/data', Float32MultiArray, self.update_arm_data)
-
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 + 6,)
+        self.state_shape = (self.nb_actions * 2 + 5,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -106,6 +99,16 @@ class KomodoEnvironment:
         self.joint_state = np.zeros(self.nb_actions)
         self.joint_pos = self.starting_pos
         self.state = np.zeros(self.state_shape)
+
+
+        # TODO: Robot information Subscribers
+        self.joint_state_subscriber = rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
+        self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
+        self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
+        self.distance_subscriber = rospy.Subscriber('/scan', LaserScan, self.update_distace)
+        self.arm_data_subscriber = rospy.Subscriber('/arm/data', Float32MultiArray, self.update_arm_data)
+
+
 
 
 
@@ -130,7 +133,7 @@ class KomodoEnvironment:
         :return:       middle value of laser sensor
         :rtype:
         """
-        self.position_from_pile = msg.ranges[360]
+        self.position_from_pile = np.array([msg.ranges[360]])
 
     def update_arm_data(self,data):
         self.arm_data = data.data
@@ -166,7 +169,8 @@ class KomodoEnvironment:
         normed_js = self.normalize_joint_state(self.joint_state)
         self.particle = 0
 
-        self.state = np.concatenate((self.particle,self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        # self.state = np.concatenate((self.particle,self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
 
         self.last_action = np.zeros(self.nb_actions)
 
@@ -179,7 +183,7 @@ class KomodoEnvironment:
         action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action,a_min=self.min_limit,a_max=self.max_limit)
         self.actions.move(self.joint_pos)
-        print('joint pos:',self.joint_pos)
+        # print('joint pos:',self.joint_pos)
 
         rospy.sleep(15.0/60.0)
         self.particle = self.check_particle_in_bucket() # update particle in bucket
@@ -189,7 +193,8 @@ class KomodoEnvironment:
 
         diff_joint = normed_js - self.last_joint
 
-        self.state = np.concatenate((self.particle, self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        # self.state = np.concatenate((self.particle, self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
 
         self.last_joint = normed_js
         self.last_action = action
