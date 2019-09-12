@@ -217,7 +217,7 @@ class KomodoEnvironment:
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 + 5,)
+        self.state_shape = (self.nb_actions * 2 + 6,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -357,8 +357,8 @@ class KomodoEnvironment:
         diff_joint = np.zeros(self.nb_actions)
         normed_js = self.normalize_joint_state(self.joint_state)
 
-        # arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
-        arm_data = np.array([ self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
+        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
+        # arm_data = np.array([ self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
 
         model_data = np.array([pos[0]])
 
@@ -495,8 +495,8 @@ class KomodoEnvironment:
 
         diff_joint = (normed_js - self.last_joint)
 
-        # arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
-        arm_data = np.array([self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
+        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
+        # arm_data = np.array([self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
 
         model_data = np.array([pos[0]])
 
