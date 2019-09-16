@@ -8,11 +8,14 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu, LaserScan
 from geometry_msgs.msg import Twist, Vector3Stamped
 import numpy as np
-from std_msgs.msg import Int32MultiArray, Float32MultiArray
+from std_msgs.msg import Int32MultiArray, Float32MultiArray, Float32
 from scipy.interpolate import interp1d
+
 motor_con = 4
 
-
+def maprange(a, b, s):
+    (a1, a2), (b1, b2) = a, b
+    return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
 
 class Actions:
     def __init__(self):
@@ -27,6 +30,7 @@ class Actions:
         self.vel_msg.angular.x = 0
         self.vel_msg.angular.y = 0
         self.vel_msg.angular.z = 0
+
 
     def move(self, cmd): # cmd [velocity , arm , bucket ]
         self.vel_msg.linear.x = cmd[0]
@@ -46,8 +50,11 @@ class Actions:
 
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
-        des_cmd[:2] = np.interp(des_cmd[:2], (-0.2 , 0.32), (250, 950))
-        des_cmd[2:] = np.interp(des_cmd[2:], (-0.5, 0.548), (10, 450))
+        print('des befoe', des_cmd)
+        maprange([0.32, -0.2],[250, 780],des_cmd[:2])
+        des_cmd[:2] = maprange([0.32, -0.2],[250, 780],des_cmd[:2])
+        des_cmd[2:] = maprange([0.548, -0.5], [10, 450],des_cmd[2:])
+        print('des after', des_cmd)
         return des_cmd
 
 
@@ -86,10 +93,12 @@ class KomodoEnvironment:
         self.fb = np.zeros((motor_con,), dtype=np.int32)
         self.old_fb = np.zeros((motor_con,), dtype=np.int32)
         self.velocity_motor = np.zeros((motor_con,), dtype=np.int32)
+        self.intrp_sc_opp = interp1d([250, 780], [0.32, -0.2])
+        self.intrp_ac_opp = interp1d([10, 450], [0.548, -0.5])
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 + 5,)
+        self.state_shape = (self.nb_actions * 2 + 6,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -107,8 +116,7 @@ class KomodoEnvironment:
         self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
         self.distance_subscriber = rospy.Subscriber('/scan', LaserScan, self.update_distace)
         self.arm_data_subscriber = rospy.Subscriber('/arm/data', Float32MultiArray, self.update_arm_data)
-
-
+        self.force_subscriber = rospy.Subscriber('/arm/calibrated_force', Float32, self.update_force)
 
 
 
@@ -123,8 +131,8 @@ class KomodoEnvironment:
         self.old_fb = np.array(self.fb)
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
-        self.joint_state[1] = np.interp(self.fb[0],(250, 950),(-0.2, 0.32))
-        self.joint_state[2] = np.interp(self.fb[2],(10, 450),(-0.5, 0.548))
+        self.joint_state[1] = maprange([250, 780], [0.32, -0.2], self.fb[0])
+        self.joint_state[2] = maprange([10, 450], [0.548, -0.5], self.fb[2])
 
     def update_distace(self,msg):
         """
@@ -133,11 +141,13 @@ class KomodoEnvironment:
         :return:       middle value of laser sensor
         :rtype:
         """
-        self.position_from_pile = np.array([msg.ranges[360]])
+        self.position_from_pile = np.array([msg.ranges[270]])
 
     def update_arm_data(self,data):
         self.arm_data = data.data
 
+    def update_force(self, data):
+        self.particle = np.array([data.data])
 
     def normalize_joint_state(self,joint_pos):
         joint_coef = 3.0
@@ -153,8 +163,6 @@ class KomodoEnvironment:
         self.joint_state[0] = vel # fixed velocity
         self.velocity = vel
 
-    def check_particle_in_bucket(self):
-        return 'wow'
 
     def dump_pile(self):
         return 'dumped'
@@ -167,10 +175,10 @@ class KomodoEnvironment:
         self.last_joint = self.joint_state
         diff_joint = np.zeros(self.nb_actions)
         normed_js = self.normalize_joint_state(self.joint_state)
-        self.particle = 0
+        self.particle = np.zeros(1)
 
-        self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
-        # self.state = np.concatenate((self.particle,self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        # self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        self.state = np.concatenate((self.particle, self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
 
         self.last_action = np.zeros(self.nb_actions)
 
@@ -179,25 +187,25 @@ class KomodoEnvironment:
     def step(self, action):
 
 
-        print('action:',action)
+        # print('action:',action)
         action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action,a_min=self.min_limit,a_max=self.max_limit)
+
         self.actions.move(self.joint_pos)
         # print('joint pos:',self.joint_pos)
 
         rospy.sleep(15.0/60.0)
-        self.particle = self.check_particle_in_bucket() # update particle in bucket
 
         #normed_js = self.normalize_joint_state(self.joint_pos)
         normed_js = self.normalize_joint_state(self.joint_state)
 
         diff_joint = normed_js - self.last_joint
 
-        self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
-        # self.state = np.concatenate((self.particle, self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        # self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+        self.state = np.concatenate((self.particle, self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
 
         self.last_joint = normed_js
         self.last_action = action
 
-        print('state', self.state)
+        # print('state', self.state)
         return self.state

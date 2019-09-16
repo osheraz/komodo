@@ -14,12 +14,12 @@ agent.load_model(agent.current_path + '/model/model.ckpt')
 print('Resetting joint positions')
 observation = env.reset()
 print('Reset!')
-time.sleep(1.0)
+time.sleep(2.0)
 
 for i in range(25):
     action = agent.act_without_noise(observation)
     observation = env.step(action)
-    #time.sleep(0.25)
+    time.sleep(0.5)
 
 print('Resetting joint positions')
 env.reset()
