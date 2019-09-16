@@ -13,14 +13,21 @@ print('DDPG agent configured')
 agent.load_model(agent.current_path + '/model/model.ckpt')
 print('Resetting joint positions')
 observation = env.reset()
+observation_arr = observation
 print('Reset!')
 time.sleep(2.0)
 
 for i in range(25):
     action = agent.act_without_noise(observation)
     observation = env.step(action)
+    observation_arr = np.vstack((observation_arr, observation))
+    print('------------------------------------------------------------------')
+
     time.sleep(0.5)
 
 print('Resetting joint positions')
 env.reset()
 print('Reset')
+import matplotlib.pyplot as plt
+plt.plot(observation_arr[:][:])
+plt.show()

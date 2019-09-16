@@ -38,7 +38,7 @@ class Actions:
         bucket_cmd = cmd[2]
         self.des_to_pub.data = self.normalize_arm_cmd(arm_cmd, bucket_cmd)
         self.arm_bucket_pub.publish(self.des_to_pub)
-        self.vel_pub.publish(self.vel_msg)
+        #self.vel_pub.publish(self.vel_msg)
 
     def reset_move(self, cmd):
         self.vel_msg.linear.x = cmd[0]
@@ -46,15 +46,13 @@ class Actions:
         bucket_cmd = cmd[2]
         self.des_to_pub.data = self.normalize_arm_cmd(arm_cmd, bucket_cmd)
         self.arm_bucket_pub.publish(self.des_to_pub)
-        self.vel_pub.publish(self.vel_msg)
+        #self.vel_pub.publish(self.vel_msg)
 
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
-        print('des befoe', des_cmd)
-        maprange([0.32, -0.2],[250, 780],des_cmd[:2])
-        des_cmd[:2] = maprange([0.32, -0.2],[250, 780],des_cmd[:2])
+        maprange([0.32, -0.2],[300, 780],des_cmd[:2])
+        des_cmd[:2] = maprange([0.32, -0.2],[300, 780],des_cmd[:2])
         des_cmd[2:] = maprange([0.548, -0.5], [10, 450],des_cmd[2:])
-        print('des after', des_cmd)
         return des_cmd
 
 
@@ -93,7 +91,7 @@ class KomodoEnvironment:
         self.fb = np.zeros((motor_con,), dtype=np.int32)
         self.old_fb = np.zeros((motor_con,), dtype=np.int32)
         self.velocity_motor = np.zeros((motor_con,), dtype=np.int32)
-        self.intrp_sc_opp = interp1d([250, 780], [0.32, -0.2])
+        self.intrp_sc_opp = interp1d([300, 780], [0.32, -0.2])
         self.intrp_ac_opp = interp1d([10, 450], [0.548, -0.5])
 
         # TODO: RL information
@@ -131,7 +129,7 @@ class KomodoEnvironment:
         self.old_fb = np.array(self.fb)
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
-        self.joint_state[1] = maprange([250, 780], [0.32, -0.2], self.fb[0])
+        self.joint_state[1] = maprange([300, 780], [0.32, -0.2], self.fb[0])
         self.joint_state[2] = maprange([10, 450], [0.548, -0.5], self.fb[2])
 
     def update_distace(self,msg):
@@ -144,7 +142,7 @@ class KomodoEnvironment:
         self.position_from_pile = np.array([msg.ranges[270]])
 
     def update_arm_data(self,data):
-        self.arm_data = data.data
+        self.arm_data = np.array(data.data) / 1000
 
     def update_force(self, data):
         self.particle = np.array([data.data])
@@ -192,7 +190,7 @@ class KomodoEnvironment:
         self.joint_pos = np.clip(self.joint_pos + action,a_min=self.min_limit,a_max=self.max_limit)
 
         self.actions.move(self.joint_pos)
-        # print('joint pos:',self.joint_pos)
+        #print('joint pos:',self.joint_pos)
 
         rospy.sleep(15.0/60.0)
 
@@ -206,6 +204,5 @@ class KomodoEnvironment:
 
         self.last_joint = normed_js
         self.last_action = action
-
-        # print('state', self.state)
+        print('state:  ',np.round(self.state,2))
         return self.state
