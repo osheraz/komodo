@@ -18,6 +18,7 @@ from geometry_msgs.msg import Twist, Vector3Stamped
 from Spawner import Spawner
 from matplotlib import path
 import math
+import pandas
 
 
 class Actions:
@@ -471,9 +472,15 @@ class KomodoEnvironment:
 
         # print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
         #                                                                        self.joint_state[2])
-        print('state:   {}'.format(np.round(self.state,2)))
+        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
+        df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
+        print(df.to_string(index=False))
 
-        print('action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
+        # print('state:   {}'.format(np.round(self.state,2)))
+
+
+
+        print('Action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
 
         action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
@@ -489,7 +496,7 @@ class KomodoEnvironment:
 
         self.reward = self.reward_function(pos, p_in_bucket)
 
-        print('reward:    {:0.2f}').format(self.reward)
+        print('Reward:    {:0.2f}').format(self.reward)
 
         normed_js = self.normalize_joint_state(self.joint_state) # TODO: Check without diff + Pos Z
 
@@ -507,7 +514,7 @@ class KomodoEnvironment:
         self.last_action = action
 
         curr_time = rospy.get_time()
-        print('time:    {:0.2f}').format(curr_time - self.episode_start_time)
+        print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
 
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True
@@ -515,7 +522,10 @@ class KomodoEnvironment:
         else:
             self.done = False
 
-        print('next state:  {}').format(np.round(self.state,2))
+        # print('next state:  {}').format(np.round(self.state,2))
+        df_n = pandas.DataFrame((np.round(self.state,2)), columns=keys)
+        print(df_n.to_string(index=False))
+
         self.reward = np.clip(self.reward, a_min=-10, a_max=10)
         return self.state, self.reward, self.done
 

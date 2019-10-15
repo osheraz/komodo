@@ -12,7 +12,7 @@ print('DDPG agent configured')
 agent.load_model(agent.current_path + '/model/model.ckpt')
 max_episode = 3
 for i in range(max_episode):
-    print('---------------------------env reset-------------------------')
+    print('---------------------------env reset---------------------------------------------------------')
     observation, done = env.reset()
     action = agent.act_without_noise(observation)
     observation, reward, done = env.step(action)
@@ -25,8 +25,8 @@ for i in range(max_episode):
         observation, reward, done = env.step(action)
         observation_arr = np.vstack((observation_arr, observation))
         action_arr= np.vstack((action_arr, action))
-        print('reward:',round(reward,3),'episode:', i, 'step:',step_num)
-        print('---------------------------------------------------------')
+        print('Reward:', round(reward,3), 'Episode:', i, 'Step:', step_num)
+        print('------------------------------------------------------------------------------------------')
 
 import matplotlib.pyplot as plt
 plt.plot(observation_arr[:][:])
