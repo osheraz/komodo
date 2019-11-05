@@ -28,6 +28,9 @@ for i in range(max_episode):
         print('Reward:', round(reward,3), 'Episode:', i, 'Step:', step_num)
         print('------------------------------------------------------------------------------------------')
 
+np.save('observation',observation_arr)
+np.save('action',observation_arr)
+
 import matplotlib.pyplot as plt
 plt.plot(observation_arr[:][:])
 plt.show()
