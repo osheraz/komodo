@@ -155,6 +155,7 @@ class Pile:
 
     def particle_location(self,num_p):
         px_arr = np.zeros(num_p)
+        py_arr = np.zeros(num_p)
         pz_arr = np.zeros(num_p)
         for i in range(1, num_p+1):
             get_particle_state_req = GetModelStateRequest()
@@ -168,10 +169,11 @@ class Pile:
             (roll, pitch, theta) = euler_from_quaternion(
                 [orientation.x, orientation.y, orientation.z, orientation.w])
             px_arr[i-1] = x
+            py_arr[i-1] = y
             pz_arr[i-1] = z
-        return px_arr,pz_arr
+        return px_arr, pz_arr, py_arr
 
-    def in_bucket(self,xq, yq, xv, yv):
+    def in_bucket_2d(self,xq, yq, xv, yv):
         shape = xq.shape
         xq = xq.reshape(-1)
         yq = yq.reshape(-1)
@@ -400,8 +402,12 @@ class KomodoEnvironment:
         xv = np.array([self.bucket_link_x, x_up, self.x_tip, x_down, self.bucket_link_x])
         zv = np.array([z, z_up, self.z_tip, z_down, z])
 
-        xq, zq = self.pile.particle_location(self.pile.num_particle)
-        particle_in_bucket = self.pile.in_bucket(xq, zq, xv, zv)
+        xq, zq, yq = self.pile.particle_location(self.pile.num_particle)
+        index = np.where(abs(yq) >= 0.2)
+        xq = np.delete(xq, index)
+        zq = np.delete(zq, index)
+
+        particle_in_bucket = self.pile.in_bucket_2d(xq, zq, xv, zv)
         self.particle = (particle_in_bucket == 1).sum()
 
         rospy.logdebug('BUCKET: x: '+str(round(x, 2)) +' y: '+str(round(y, 3))+' z: '+str(round(z, 2))+ ' x_tip: '+str(round(self.x_tip, 2)))
@@ -452,17 +458,10 @@ class KomodoEnvironment:
             reward_arm = -0.5*self.bucket_link_z  # 0.X
             reward_tot += reward_arm
 
-
         # Negative Rewards:
         # if self.z_tip < ground:# case z is bigger then ground
         #     reward_ground = -0.125
         #     reward_tot += reward_ground
-
-        # if self.bucket_link_z > self.pile.z_max and self.bucket_link_x > self.pile.sand_box_x:# not important area
-
-        # R = [reward_dist, vel_discount, reward_dist * vel_discount, reward_par, reward_ground, reward_arm]
-        # print('Reward-- dist: {:0.2f}   VDiscount: {:0.2f}   Combined: {:0.2f}   Particle: {:0.2f}   Ground: {:0.2f}   Arm: {:0.2f}')\
-        #     .format(R[0], R[1], R[2], R[3], R[4], R[5])
 
         return reward_tot
 
