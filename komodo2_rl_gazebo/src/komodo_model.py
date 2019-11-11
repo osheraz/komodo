@@ -9,6 +9,8 @@ from sensor_msgs.msg import Imu, LaserScan
 from geometry_msgs.msg import Twist, Vector3Stamped
 import numpy as np
 from std_msgs.msg import Int32MultiArray, Float32MultiArray, Float32
+import pandas
+
 from scipy.interpolate import interp1d
 
 motor_con = 4
@@ -38,7 +40,7 @@ class Actions:
         bucket_cmd = cmd[2]
         self.des_to_pub.data = self.normalize_arm_cmd(arm_cmd, bucket_cmd)
         self.arm_bucket_pub.publish(self.des_to_pub)
-        #self.vel_pub.publish(self.vel_msg)
+        self.vel_pub.publish(self.vel_msg)
 
     def reset_move(self, cmd):
         self.vel_msg.linear.x = cmd[0]
@@ -46,13 +48,13 @@ class Actions:
         bucket_cmd = cmd[2]
         self.des_to_pub.data = self.normalize_arm_cmd(arm_cmd, bucket_cmd)
         self.arm_bucket_pub.publish(self.des_to_pub)
-        #self.vel_pub.publish(self.vel_msg)
+        self.vel_pub.publish(self.vel_msg)
 
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
-        maprange([0.32, -0.2],[300, 780],des_cmd[:2])
-        des_cmd[:2] = maprange([0.32, -0.2],[300, 780],des_cmd[:2])
-        des_cmd[2:] = maprange([0.548, -0.5], [10, 450],des_cmd[2:])
+        # maprange([0.32, -0.2],[350, 780],des_cmd[:2])
+        des_cmd[:2] = maprange([0.32, -0.2],[400, 780],des_cmd[:2])
+        des_cmd[2:] = maprange([-0.5, 0.548], [10, 450],des_cmd[2:])
         return des_cmd
 
 
@@ -91,8 +93,8 @@ class KomodoEnvironment:
         self.fb = np.zeros((motor_con,), dtype=np.int32)
         self.old_fb = np.zeros((motor_con,), dtype=np.int32)
         self.velocity_motor = np.zeros((motor_con,), dtype=np.int32)
-        self.intrp_sc_opp = interp1d([300, 780], [0.32, -0.2])
-        self.intrp_ac_opp = interp1d([10, 450], [0.548, -0.5])
+        # self.intrp_sc_opp = interp1d([350, 780], [0.32, -0.2])
+        # self.intrp_ac_opp = interp1d([10, 450], [0.548, -0.5])
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
@@ -129,8 +131,8 @@ class KomodoEnvironment:
         self.old_fb = np.array(self.fb)
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
-        self.joint_state[1] = maprange([300, 780], [0.32, -0.2], self.fb[0])
-        self.joint_state[2] = maprange([10, 450], [0.548, -0.5], self.fb[2])
+        self.joint_state[1] = maprange([400, 780], [0.32, -0.2], self.fb[0])
+        self.joint_state[2] = maprange([10, 450], [-0.5,0.548], self.fb[2])
 
     def update_distace(self,msg):
         """
@@ -145,7 +147,10 @@ class KomodoEnvironment:
         self.arm_data = np.array(data.data) / 1000
 
     def update_force(self, data):
-        self.particle = np.array([data.data])
+        min_w = 0
+        max_w = 20
+        force = abs(data.data)
+        self.particle = np.array([maprange([min_w, max_w], [0, 14], force)])
 
     def normalize_joint_state(self,joint_pos):
         joint_coef = 3.0
@@ -185,12 +190,14 @@ class KomodoEnvironment:
     def step(self, action):
 
 
-        # print('action:',action)
+        print('action:',np.round(action, 2))
         action = action * self.action_range
-        self.joint_pos = np.clip(self.joint_pos + action,a_min=self.min_limit,a_max=self.max_limit)
+        # self.max_limit = np.array([0.1, 0.32, 0.548])
+        # self.min_limit = np.array([-0.1, -0.2, -0.5])
+        self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
 
         self.actions.move(self.joint_pos)
-        #print('joint pos:',self.joint_pos)
+        print('vel,arm,buk:', np.round(self.joint_state, 2))
 
         rospy.sleep(15.0/60.0)
 
@@ -204,5 +211,8 @@ class KomodoEnvironment:
 
         self.last_joint = normed_js
         self.last_action = action
-        print('state:  ',np.round(self.state,2))
+        # print('state:  ',np.round(self.state,2))
+        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
+        df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
+        print(df.to_string(index=False))
         return self.state

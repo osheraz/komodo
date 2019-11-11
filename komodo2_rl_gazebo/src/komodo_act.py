@@ -16,14 +16,14 @@ observation = env.reset()
 observation_arr = observation
 print('Reset!')
 time.sleep(2.0)
-
-for i in range(25):
+for i in range(40):
     action = agent.act_without_noise(observation)
+    if i == 0 : action_arr = action
     observation = env.step(action)
+    action_arr = np.vstack((action_arr, action))
     observation_arr = np.vstack((observation_arr, observation))
     print('------------------------------------------------------------------')
-
-    time.sleep(0.5)
+    time.sleep(0.1)
 
 print('Resetting joint positions')
 env.reset()
