@@ -2,7 +2,8 @@
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="komodo2_robot" description="Komodo2 Robot">
 	<xacro:property name="M_PI" value="3.1415926535897931" />
-        
+    <xacro:property name="Wheel_effort" value="0.05" />
+
       <link name="base_footprint"/>
   
  <joint name="base_footprint_joint" type="fixed">
@@ -19,14 +20,14 @@
         xyz="0.0030152 0.00057861 0.0749"
         rpy="0 0 0" />
       <mass
-        value="200.0058" />
+        value="500.0058" />
       <inertia
-        ixx="0.80093"
+        ixx="80.0093"
         ixy="-0.37058"
         ixz="0.150841"
-        iyy="0.55849"
+        iyy="50.5849"
         iyz="-0.24895"
-        izz="1.02180" />
+        izz="10.2180" />
     </inertial>
     <visual>
       <origin
@@ -107,7 +108,7 @@
     <axis
       xyz="0 1 0" />
     <limit
-      effort="0.4"
+      effort="${Wheel_effort}"
       velocity="32.0" />
   </joint>
   <link
@@ -163,7 +164,7 @@
     <axis
       xyz="0 1 0" />
     <limit
-      effort="0.4"
+      effort="${Wheel_effort}"
       velocity="32.0" />
   </joint>
   <link
@@ -219,7 +220,7 @@
     <axis
       xyz="0 1 0" />
     <limit
-      effort="0.4"
+      effort="${Wheel_effort}"
       velocity="32.0" />
   </joint>
   <link
@@ -275,9 +276,10 @@
     <axis
       xyz="0 1 0" />
     <limit
-      effort="0.4"
+      effort="${Wheel_effort}"
       velocity="32.0" />
   </joint>
+
   <link name="laser_link" >
     <visual>
       <origin
@@ -594,7 +596,7 @@
       link="arm" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="290.0" lower="-0.2" upper="0.32" velocity="0.05"/>
+    <limit effort="30.0" lower="-0.2" upper="0.32" velocity="0.07"/>
   </joint>
 
 

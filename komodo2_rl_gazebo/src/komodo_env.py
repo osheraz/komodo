@@ -62,7 +62,7 @@ class Pile:
         self.z_max = 0.26
         self.x_min = 0
         self.sand_box_x = 0.35
-        self.sand_box_y = 0.3
+        self.sand_box_y = 0.301
         self.sand_box_z = 0.0
         self.sand_box_height = 0.25
         self.center_x = self.sand_box_x / 2
@@ -220,7 +220,7 @@ class KomodoEnvironment:
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 + 6,)
+        self.state_shape = (self.nb_actions * 2 +6,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -361,7 +361,6 @@ class KomodoEnvironment:
         normed_js = self.normalize_joint_state(self.joint_state)
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
-        # arm_data = np.array([ self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
 
         model_data = np.array([pos[0]])
 
@@ -404,8 +403,8 @@ class KomodoEnvironment:
 
         xq, zq, yq = self.pile.particle_location(self.pile.num_particle)
         index = np.where(abs(yq) >= 0.2)
-        xq = np.delete(xq, index)
-        zq = np.delete(zq, index)
+        # xq = np.delete(xq, index)
+        # zq = np.delete(zq, index)
 
         particle_in_bucket = self.pile.in_bucket_2d(xq, zq, xv, zv)
         self.particle = (particle_in_bucket == 1).sum()
@@ -443,7 +442,7 @@ class KomodoEnvironment:
         bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
         arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
-        loc_dist = math.sqrt((self.bucket_link_x - self.pile.sand_box_x) ** 2)
+        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
 
         # Positive Rewards:
         reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
@@ -502,7 +501,6 @@ class KomodoEnvironment:
         diff_joint = (normed_js - self.last_joint)
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
-        # arm_data = np.array([self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
 
         model_data = np.array([pos[0]])
 
@@ -522,9 +520,9 @@ class KomodoEnvironment:
             self.done = False
 
         # print('next state:  {}').format(np.round(self.state,2))
-        df_n = pandas.DataFrame((np.round(self.state,2)), columns=keys)
-        print(df_n.to_string(index=False))
+        # df_n = pandas.DataFrame((np.round(self.state,2)), columns=keys)
+        # print(df_n.to_string(index=False))
 
-        self.reward = np.clip(self.reward, a_min=-10, a_max=10)
+        self.reward = np.clip(self.reward, a_min=-20, a_max=20)
         return self.state, self.reward, self.done
 

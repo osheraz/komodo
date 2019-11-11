@@ -11,7 +11,7 @@ action_shape = env.action_shape
 agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
                                         actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
 print('DDPG agent configured')
-max_episode = 4000
+max_episode = 500
 tot_rewards = []
 print('env reset')
 observation, done = env.reset()
@@ -31,7 +31,9 @@ for i in range(max_episode):
         step_num += 1
         action = agent.step(observation, reward, done)
         observation, reward, done = env.step(action)
-        print('reward:',reward,'episode:', i, 'step:',step_num,'curr high eps reward:',curr_highest_eps_reward, 'saved:',save_count, 'cutoff count:', cutoff_count)
+        print('\nreward:',round(reward,3),'episode:', i, 'step:',step_num,'curr high eps reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
+        print('\n-----------------------------------------------------------------------------------------------------\n')
+
     action, eps_reward = agent.step(observation, reward, done)
     tot_rewards.append(eps_reward)
     if eps_reward > curr_highest_eps_reward:
