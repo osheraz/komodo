@@ -15,11 +15,10 @@ class checks:
 
         # sub = rospy.Subscriber('/scan',LaserScan, self.callback)
         # force_subscriber = rospy.Subscriber('/arm/calibrated_force', Float32, self.update_force)
-<<<<<<< HEAD
+
         self.imu_subscriber = rospy.Subscriber('/IMU', Imu, self.imu_subscriber_callback)
-=======
+
         self.imu_subscriber = rospy.Subscriber('/IMU/data', Imu, self.imu_subscriber_callback)
->>>>>>> acfb31a951a628fc6bbb34548856111da9c23d01
 
         self.ori_arr = np.zeros([4])
         self.ang_arr = np.zeros([3])
@@ -42,17 +41,14 @@ class checks:
         self.ori_arr = np.vstack((self.ori_arr,  orientation))
         self.ang_arr = np.vstack((self.ang_arr,  angular_vel))
         self.lin_arr = np.vstack((self.lin_arr,  linear_acc))
-<<<<<<< HEAD
-        if self.lin_arr.shape[0] == 100:
-=======
+
+
         if self.lin_arr.shape[0] == 20:
->>>>>>> acfb31a951a628fc6bbb34548856111da9c23d01
             np.save('lin',self.lin_arr)
             np.save('ori',self.ang_arr)
             np.save('ang',self.ang_arr)
 
 
-<<<<<<< HEAD
 def plottt():
     lin = np.load('lin.npy')
     ori = np.load('ori.npy')
@@ -75,18 +71,16 @@ def plottt():
     # plt.plot(ang[:][:])
     # plt.plot(ang_sim[:][:])
     # plt.show()
-=======
->>>>>>> acfb31a951a628fc6bbb34548856111da9c23d01
 
 if __name__ == '__main__':
     try:
         # checks()
-<<<<<<< HEAD
+
         plottt()
 
     except rospy.ROSInterruptException:
         pass
-=======
+
 
         lin = np.load('lin.npy')
         ori = np.load('ori.npy')
@@ -103,4 +97,3 @@ if __name__ == '__main__':
         plt.show()
     except rospy.ROSInterruptException:
         pass
->>>>>>> acfb31a951a628fc6bbb34548856111da9c23d01
