@@ -21,7 +21,16 @@
         rpy="0 0 0" />
       <mass
         value="500.0058" />
-      <inertia
+      <!--mass
+        value="50.0058" /-->
+      <!--inertia
+        ixx="0.80093"
+        ixy="-0.37058"
+        ixz="0.150841"
+        iyy="0.55849"
+        iyz="-0.24895"
+        izz="1.02180" /-->
+    <inertia
         ixx="80.0093"
         ixy="-0.37058"
         ixz="0.150841"
@@ -612,7 +621,7 @@
       link="bucket" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="30.0" lower="-0.5" upper="0.548" velocity="0.05"/>
+    <limit effort="20.0" lower="-0.5" upper="0.548" velocity="0.05"/>
   </joint>
 
 
