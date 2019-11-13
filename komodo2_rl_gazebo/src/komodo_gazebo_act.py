@@ -1,8 +1,10 @@
 from __future__ import print_function
 from komodo_env import KomodoEnvironment
 from ddpg import DDPG
+from force_test import force_listener
 import numpy as np
 
+f_listener = force_listener()
 env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
@@ -10,7 +12,7 @@ agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
                                         actor_lr=0.0005, critic_lr=0.001, use_layer_norm=True)
 print('DDPG agent configured')
 agent.load_model(agent.current_path + '/model/model.ckpt')
-max_episode = 3
+max_episode = 5
 for i in range(max_episode):
     print('---------------------------env reset---------------------------------------------------------')
     observation, done = env.reset()
@@ -28,9 +30,10 @@ for i in range(max_episode):
         print('Reward:', round(reward,3), 'Episode:', i, 'Step:', step_num)
         print('------------------------------------------------------------------------------------------')
 
+f_listener.force_plot()
 np.save('observation',observation_arr)
 np.save('action',observation_arr)
 
 import matplotlib.pyplot as plt
-plt.plot(observation_arr[:][:])
-plt.show()
+#plt.plot(observation_arr[:][:])
+#plt.show()
