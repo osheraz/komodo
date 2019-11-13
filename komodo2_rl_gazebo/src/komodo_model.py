@@ -10,14 +10,18 @@ from geometry_msgs.msg import Twist, Vector3Stamped
 import numpy as np
 from std_msgs.msg import Int32MultiArray, Float32MultiArray, Float32
 import pandas
-
-from scipy.interpolate import interp1d
+from geometry_msgs.msg import WrenchStamped
 
 motor_con = 4
 
 def maprange(a, b, s):
     (a1, a2), (b1, b2) = a, b
     return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
+
+def smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
 
 class Actions:
     def __init__(self):
@@ -54,10 +58,30 @@ class Actions:
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
         # maprange([0.32, -0.2],[350, 780],des_cmd[:2])
         des_cmd[:2] = maprange([0.32, -0.2],[400, 780],des_cmd[:2])
-        des_cmd[2:] = maprange([-0.5, 0.548], [10, 450],des_cmd[2:])
+        des_cmd[2:] = maprange([-0.5, 0.548], [20, 450],des_cmd[2:])
         return des_cmd
 
+class torque_listener:
+    def __init__(self):
+        self.sub = rospy.Subscriber('/arm/calibrated_torque', Float32, self.update_force)
+        self.arr = []
 
+    def update_force(self,msg):
+        # log the message data to the terminal
+        torque = msg.data
+        #rospy.loginfo(torque)
+        self.arr.append(torque)
+
+    def torque_plot(self):
+        self.sub.unregister()
+        import matplotlib.pyplot as plt
+        plt.plot(self.arr, 'o')
+        plt.plot(smooth(self.arr, 3), 'r-', lw=2)
+        plt.plot(smooth(self.arr, 19), 'g-', lw=2)
+        plt.title('Torque over time - real-robot')
+        plt.ylabel('Torque(Nm)')
+        plt.xlabel('time (s)')
+        plt.show()
 
 class KomodoEnvironment:
     def __init__(self):
@@ -132,7 +156,7 @@ class KomodoEnvironment:
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
         self.joint_state[1] = maprange([400, 780], [0.32, -0.2], self.fb[0])
-        self.joint_state[2] = maprange([10, 450], [-0.5,0.548], self.fb[2])
+        self.joint_state[2] = maprange([20, 450], [-0.5,0.548], self.fb[2])
 
     def update_distace(self,msg):
         """

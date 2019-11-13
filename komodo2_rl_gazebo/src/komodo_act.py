@@ -1,9 +1,10 @@
 from __future__ import print_function
-from komodo_model import KomodoEnvironment
+from komodo_model import KomodoEnvironment, torque_listener
 from ddpg import DDPG
 import time
 import numpy as np
 
+t_listener = torque_listener()
 env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
@@ -25,6 +26,7 @@ for i in range(40):
     print('------------------------------------------------------------------')
     time.sleep(0.1)
 
+t_listener.torque_plot()
 print('Resetting joint positions')
 env.reset()
 print('Reset')

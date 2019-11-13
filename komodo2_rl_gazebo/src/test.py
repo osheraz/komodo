@@ -15,6 +15,9 @@ class checks:
 
         # sub = rospy.Subscriber('/scan',LaserScan, self.callback)
         # force_subscriber = rospy.Subscriber('/arm/calibrated_force', Float32, self.update_force)
+
+        self.imu_subscriber = rospy.Subscriber('/IMU', Imu, self.imu_subscriber_callback)
+
         self.imu_subscriber = rospy.Subscriber('/IMU/data', Imu, self.imu_subscriber_callback)
 
         self.ori_arr = np.zeros([4])
@@ -38,16 +41,45 @@ class checks:
         self.ori_arr = np.vstack((self.ori_arr,  orientation))
         self.ang_arr = np.vstack((self.ang_arr,  angular_vel))
         self.lin_arr = np.vstack((self.lin_arr,  linear_acc))
-        if self.lin_arr.shape[0] == 150:
+
+        if self.lin_arr.shape[0] == 20:
             np.save('lin',self.lin_arr)
             np.save('ori',self.ang_arr)
             np.save('ang',self.ang_arr)
 
 
+def plottt():
+    lin = np.load('lin.npy')
+    ori = np.load('ori.npy')
+    ang = np.load('ang.npy')
+
+    lin_sim = np.load('lin_sim.npy')
+    ori_sim = np.load('ori_sim.npy')
+    ang_sim = np.load('ang_sim.npy')
+
+    import matplotlib.pyplot as plt
+    plt.figure(1)
+    plt.plot(lin[60:,2])
+    plt.plot(-lin_sim[:,2])
+    plt.show()
+    # plt.figure(2)
+    # plt.plot(ori[:][:])
+    # plt.plot(ori_sim[:][:])
+    # plt.show()
+    # plt.figure(3)
+    # plt.plot(ang[:][:])
+    # plt.plot(ang_sim[:][:])
+    # plt.show()
 
 if __name__ == '__main__':
     try:
         # checks()
+
+        plottt()
+
+    except rospy.ROSInterruptException:
+        pass
+
 
         lin = np.load('lin.npy')
         ori = np.load('ori.npy')
