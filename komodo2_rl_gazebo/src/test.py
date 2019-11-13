@@ -13,16 +13,16 @@ class checks:
     def __init__(self):
         rospy.init_node('data')
 
-        # sub = rospy.Subscriber('/scan',LaserScan, self.callback)
+        sub = rospy.Subscriber('/scan',LaserScan, self.callback)
         # force_subscriber = rospy.Subscriber('/arm/calibrated_force', Float32, self.update_force)
 
-        self.imu_subscriber = rospy.Subscriber('/IMU', Imu, self.imu_subscriber_callback)
+        # self.imu_subscriber = rospy.Subscriber('/IMU', Imu, self.imu_subscriber_callback)
 
-        self.imu_subscriber = rospy.Subscriber('/IMU/data', Imu, self.imu_subscriber_callback)
+        # self.imu_subscriber = rospy.Subscriber('/IMU/data', Imu, self.imu_subscriber_callback)
 
-        self.ori_arr = np.zeros([4])
-        self.ang_arr = np.zeros([3])
-        self.lin_arr = np.zeros([3])
+        # self.ori_arr = np.zeros([4])
+        # self.ang_arr = np.zeros([3])
+        # self.lin_arr = np.zeros([3])
         rospy.spin()
 
     def callback(self,msg):
@@ -73,26 +73,11 @@ def plottt():
 
 if __name__ == '__main__':
     try:
-        # checks()
+        checks()
 
-        plottt()
+        #plottt()
 
     except rospy.ROSInterruptException:
         pass
-
-
-        lin = np.load('lin.npy')
-        ori = np.load('ori.npy')
-        ang = np.load('ang.npy')
-        import matplotlib.pyplot as plt
-        plt.figure(1)
-        plt.plot(lin[:][:])
-        plt.show()
-        plt.figure(2)
-        plt.plot(ori[:][:])
-        plt.show()
-        plt.figure(3)
-        plt.plot(ang[:][:])
-        plt.show()
     except rospy.ROSInterruptException:
         pass

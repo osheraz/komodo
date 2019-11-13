@@ -31,5 +31,5 @@ print('Resetting joint positions')
 env.reset()
 print('Reset')
 import matplotlib.pyplot as plt
-plt.plot(observation_arr[:][:])
-plt.show()
+#plt.plot(observation_arr[:][:])
+#plt.show()

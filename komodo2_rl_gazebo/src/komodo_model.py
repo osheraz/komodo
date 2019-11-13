@@ -11,6 +11,7 @@ import numpy as np
 from std_msgs.msg import Int32MultiArray, Float32MultiArray, Float32
 import pandas
 from geometry_msgs.msg import WrenchStamped
+from scipy.signal import savgol_filter
 
 motor_con = 4
 
@@ -76,15 +77,15 @@ class torque_listener:
         self.sub.unregister()
         import matplotlib.pyplot as plt
         plt.subplot(311)
-        plt.plot(smooth(self.arr, 40), 'b-', lw=2)
+        w = savgol_filter(self.arr, 501, 2)
+        plt.plot(w, 'b-', lw=2)
         plt.subplot(312)
-        plt.plot(smooth(self.arr, 3), 'r-', lw=2)
+        plt.plot(smooth(self.arr, 19), 'r-', lw=2)
         plt.subplot(313)
-        plt.plot(smooth(self.arr, 19), 'g-', lw=2)
+        plt.plot(smooth(self.arr, 30), 'g-', lw=2)
         plt.xlabel('time (s)')
         plt.title('Torque over time - Simulation')
         plt.ylabel('Torque (Nm)')
-        plt.grid()
         plt.show()
 
 class KomodoEnvironment:
@@ -178,7 +179,7 @@ class KomodoEnvironment:
         min_w = 0
         max_w = 20
         force = abs(data.data)
-        self.particle = np.array([maprange([min_w, max_w], [0, 14], force)])
+        self.particle = np.array([maprange([min_w, max_w], [0, 8], force)])
 
     def normalize_joint_state(self,joint_pos):
         joint_coef = 3.0
