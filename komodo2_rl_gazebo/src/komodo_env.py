@@ -435,7 +435,7 @@ class KomodoEnvironment:
         reward_arm = 0
         reward_par = 0
 
-        max_particle = 12
+        max_particle = 10
         ground = 0.02  # Ground treshhold
 
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO

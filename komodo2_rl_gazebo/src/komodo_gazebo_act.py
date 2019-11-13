@@ -12,7 +12,7 @@ agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
                                         actor_lr=0.0005, critic_lr=0.001, use_layer_norm=True)
 print('DDPG agent configured')
 agent.load_model(agent.current_path + '/model/model.ckpt')
-max_episode = 5
+max_episode = 3
 for i in range(max_episode):
     print('---------------------------env reset---------------------------------------------------------')
     observation, done = env.reset()

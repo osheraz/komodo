@@ -75,12 +75,16 @@ class torque_listener:
     def torque_plot(self):
         self.sub.unregister()
         import matplotlib.pyplot as plt
-        plt.plot(self.arr, 'o')
+        plt.subplot(311)
+        plt.plot(smooth(self.arr, 40), 'b-', lw=2)
+        plt.subplot(312)
         plt.plot(smooth(self.arr, 3), 'r-', lw=2)
+        plt.subplot(313)
         plt.plot(smooth(self.arr, 19), 'g-', lw=2)
-        plt.title('Torque over time - real-robot')
-        plt.ylabel('Torque(Nm)')
         plt.xlabel('time (s)')
+        plt.title('Torque over time - Simulation')
+        plt.ylabel('Torque (Nm)')
+        plt.grid()
         plt.show()
 
 class KomodoEnvironment:

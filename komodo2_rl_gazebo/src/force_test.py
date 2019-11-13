@@ -4,6 +4,7 @@ import rospy
 from std_msgs.msg import Float64
 from geometry_msgs.msg import WrenchStamped
 import numpy as np
+from scipy.signal import savgol_filter
 
 from scipy.ndimage.filters import gaussian_filter1d
 
@@ -32,9 +33,16 @@ class force_listener:
     def force_plot(self):
         self.sub.unregister()
         import matplotlib.pyplot as plt
-        plt.plot(self.arr, 'o')
-        plt.plot(smooth(self.arr, 3), 'r-', lw=2)
-        plt.plot(smooth(self.arr, 19), 'g-', lw=2)
+        plt.subplot(311)
+        w = savgol_filter(self.arr, 501, 2)
+        plt.plot(w, 'b-', lw=2)
+        plt.subplot(312)
+        plt.plot(smooth(self.arr, 19), 'r-', lw=2)
+        plt.subplot(313)
+        plt.plot(smooth(self.arr, 40), 'g-', lw=2)
+        plt.xlabel('time (s)')
+        plt.title('Torque over time - Simulation')
+        plt.ylabel('Torque (Nm)')
         plt.show()
 
 
