@@ -38,7 +38,7 @@ class checks:
         self.ori_arr = np.vstack((self.ori_arr,  orientation))
         self.ang_arr = np.vstack((self.ang_arr,  angular_vel))
         self.lin_arr = np.vstack((self.lin_arr,  linear_acc))
-        if self.lin_arr.shape[0] == 20:
+        if self.lin_arr.shape[0] == 150:
             np.save('lin',self.lin_arr)
             np.save('ori',self.ang_arr)
             np.save('ang',self.ang_arr)
