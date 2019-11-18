@@ -65,16 +65,28 @@ class Actions:
 class torque_listener:
     def __init__(self):
         self.sub = rospy.Subscriber('/arm/calibrated_torque', Float32, self.update_force)
+        self.sub_measured = rospy.Subscriber('/arm/measured_force', Float32, self.update__measured_force)
         self.arr = []
+        self.measured_force_arr = []
 
-    def update_force(self,msg):
+    def update_force(self,  msg):
         # log the message data to the terminal
         torque = msg.data
         #rospy.loginfo(torque)
         self.arr.append(torque)
 
+    def update__measured_force(self,    msg):
+        # log the message data to the terminal
+        force = msg.data
+        #rospy.loginfo(torque)
+        self.measured_force_arr.append(force)
+
     def torque_plot(self):
         self.sub.unregister()
+        self.sub_measured.unregister()
+        
+        np.save('force_raw_real_robot', self.measured_force_arr)
+        np.save('torque_raw_real_robot', self.arr)
         import matplotlib.pyplot as plt
         plt.subplot(311)
         w = savgol_filter(self.arr, 501, 2)
