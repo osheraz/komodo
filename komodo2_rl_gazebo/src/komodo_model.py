@@ -84,7 +84,7 @@ class torque_listener:
     def torque_plot(self):
         self.sub.unregister()
         self.sub_measured.unregister()
-        
+
         np.save('force_raw_real_robot', self.measured_force_arr)
         np.save('torque_raw_real_robot', self.arr)
         import matplotlib.pyplot as plt
@@ -158,7 +158,9 @@ class KomodoEnvironment:
         self.distance_subscriber = rospy.Subscriber('/scan', LaserScan, self.update_distace)
         self.arm_data_subscriber = rospy.Subscriber('/arm/data', Float32MultiArray, self.update_arm_data)
         self.force_subscriber = rospy.Subscriber('/arm/calibrated_force', Float32, self.update_force)
-
+        self.ori_arr = np.zeros([4])
+        self.ang_arr = np.zeros([3])
+        self.lin_arr = np.zeros([3])
 
 
     def update_fb(self, data):
@@ -201,6 +203,9 @@ class KomodoEnvironment:
         self.orientation = np.array([imu.orientation.x,imu.orientation.y,imu.orientation.z,imu.orientation.w])
         self.angular_vel = np.array([imu.angular_velocity.x,imu.angular_velocity.y,imu.angular_velocity.z])
         self.linear_acc = np.array([imu.linear_acceleration.x,imu.linear_acceleration.y,imu.linear_acceleration.z])
+        self.ori_arr = np.vstack((self.ori_arr,  self.orientation))
+        self.ang_arr = np.vstack((self.ang_arr,  self.angular_vel))
+        self.lin_arr = np.vstack((self.lin_arr,  self.linear_acc))
 
     def velocity_subscriber_callback(self, data):
         vel = data.twist.twist.linear.x
