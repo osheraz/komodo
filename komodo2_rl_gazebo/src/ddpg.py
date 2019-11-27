@@ -54,7 +54,7 @@ class ReplayBuffer:
 
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
-    #0.15 0.3
+
     def __init__(self, size, mu=None, theta=0.15, sigma=0.03, dt=1e-2):
         """Initialize parameters and noise process."""
         self.size = size
@@ -77,7 +77,9 @@ class OUNoise:
         return self.state
 
 class A2C:
+
     def __init__(self, state_shape, action_shape, actor_lr=0.001, critic_lr=0.001, gamma=0.99,use_layer_norm=True):
+
         tf.reset_default_graph()
         self.state_shape = state_shape
         self.action_shape = action_shape
@@ -87,14 +89,14 @@ class A2C:
         self.gamma = gamma
         self.use_layer_norm = use_layer_norm
 
-        #inputs
+        # inputs
         self.input_state = tf.placeholder(tf.float32, (None,) + self.state_shape, name='input_state')
         self.input_action = tf.placeholder(tf.float32, (None,) + self.action_shape, name='input_action')
         self.input_state_target = tf.placeholder(tf.float32, (None,) + self.state_shape, name='input_state_target')
         self.rewards = tf.placeholder(tf.float32, (None,1), name='rewards')
         self.dones = tf.placeholder(tf.float32, (None,1), name='dones')
 
-        #local and target nets
+        # local and target nets
         self.actor = self.actor_net(self.input_state, self.nb_actions,name='actor',use_layer_norm=self.use_layer_norm)
 
         self.critic = self.critic_net(self.input_state, self.input_action,name='critic',use_layer_norm=self.use_layer_norm)
@@ -117,7 +119,7 @@ class A2C:
         Params
         ======
             state : Input state to the net
-            np_actions (int): Dimension of each action
+            nb_actions (int): Number of action
             name (int): Name of the net
             fc1_units (int): Number of nodes in first hidden layer - right now 130
             fc2_units (int): Number of nodes in second hidden layer - right now 100
@@ -125,9 +127,9 @@ class A2C:
 
         """
         with tf.variable_scope(name, reuse=reuse):
-            x = tf.layers.Dense(130)(state)
+            x = tf.layers.Dense(130)(state)  # outputs = activation(inputs * kernel + bias)
             if use_layer_norm:
-                x = tf.contrib.layers.layer_norm(x)
+                x = tf.contrib.layers.layer_norm(x)  # Adds a Layer Normalization layer.
             x = tf.nn.relu(x)
             x = tf.layers.Dense(100)(x)
             if use_layer_norm:
@@ -159,7 +161,7 @@ class A2C:
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.relu(x)
-            x = tf.concat([x, action], axis=-1)
+            x = tf.concat([x, action], axis=-1)  # Concatenates tensors along one dimension (1 dim)
             x = tf.layers.Dense(100)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
@@ -190,7 +192,7 @@ class A2C:
         Q_targets = rewards + (gamma * actor_and_critic_target) * (1. - dones)
         actor_loss = tf.reduce_mean(-actor_and_critic)
         tf.losses.add_loss(actor_loss)
-        critic_loss = tf.losses.huber_loss(Q_targets,critic)
+        critic_loss = tf.losses.huber_loss(Q_targets,critic)  # Compute TD Error
         return actor_loss, critic_loss
 
     def set_model_opt(self, actor_loss, critic_loss, actor_lr, critic_lr):
@@ -208,6 +210,7 @@ class DDPG:
 
     def __init__(self,state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.005,
                     actor_lr=0.0001, critic_lr=0.001,use_layer_norm=True):
+
         self.state_shape = state_shape
         self.action_shape = action_shape
         self.nb_actions = np.prod(self.action_shape)

@@ -445,7 +445,7 @@ class KomodoEnvironment:
         loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
 
         # Positive Rewards:
-        reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
+        reward_dist = 0.5 * (1 - math.tanh(arm_dist) ** 2)
         reward_tot = reward_dist
         w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
 

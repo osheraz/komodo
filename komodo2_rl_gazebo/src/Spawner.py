@@ -179,7 +179,7 @@ sdf_sand_box = """<sdf version='1.6'>
       <pose frame=''>0 0 0 0 -0 0</pose>
       <inertial>
         <pose frame=''>-0.35285 -0.305 0.11027 0 -0 0</pose>
-        <mass>1000.892</mass>
+        <mass>2000.892</mass>
         <inertia>
           <ixx>130.2204</ixx>
           <ixy>-220.5538e-15</ixy>
