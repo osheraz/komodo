@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/osher/catkin_ws/src/komodo/komodo2_rl_gazebo/src/model/model.ckpt"
+all_model_checkpoint_paths: "/home/osher/catkin_ws/src/komodo/komodo2_rl_gazebo/src/model/model.ckpt"
