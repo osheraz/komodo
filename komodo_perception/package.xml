@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>komodo_perception</name>
+  <name>komodo2_perception</name>
   <version>0.0.0</version>
   <description>maybe the robot see somthing</description>
 
