@@ -179,14 +179,14 @@ def pcl_callback(pcl_msg):
     cloud = do_voxel_grid_downssampling(cloud,LEAF_SIZE)
 
     # TODO: PassThrough Filter
-    filter_axis ='z'
-    axis_min = 0.0
-    axis_max =0.25
+    # filter_axis ='z'
+    # axis_min = 0.0
+    # axis_max =0.25
     # cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
 
-    filter_axis = 'x'
-    axis_min = 0
-    axis_max = 1.0
+    # filter_axis = 'x'
+    # axis_min = 0
+    # axis_max = 1.0
     # cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
 
 
@@ -221,10 +221,10 @@ def pcl_callback(pcl_msg):
         ros_cluster = pcl_to_ros(pcl_cluster)
 
         # Extract histogram features
-        # color_hists = compute_color_histograms(ros_cluster, using_hsv=True)
-        # normals = get_normals(ros_cluster)
-        # normal_hists = compute_normal_histograms(normals)
-        # feature = np.concatenate((color_hists, normal_hists))
+        color_hists = compute_color_histograms(ros_cluster, using_hsv=True)
+        normals = get_normals(ros_cluster)
+        normal_hists = compute_normal_histograms(normals)
+        feature = np.concatenate((color_hists, normal_hists))
 
         get_centeroid(pcl_cluster)
 
