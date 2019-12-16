@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 from __future__ import print_function
 #from builtins import range
-
 import rospy
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from nav_msgs.msg import Odometry
@@ -12,6 +11,8 @@ from std_msgs.msg import Int32MultiArray, Float32MultiArray, Float32
 import pandas
 from geometry_msgs.msg import WrenchStamped
 from scipy.signal import savgol_filter
+import os
+from datetime import datetime
 
 motor_con = 4
 
@@ -68,6 +69,8 @@ class torque_listener:
         self.sub_measured = rospy.Subscriber('/arm/measured_force', Float32, self.update__measured_force)
         self.arr = []
         self.measured_force_arr = []
+        self.current_path = os.getcwd()
+
 
     def update_force(self,  msg):
         # log the message data to the terminal
@@ -84,9 +87,10 @@ class torque_listener:
     def torque_plot(self):
         self.sub.unregister()
         self.sub_measured.unregister()
+        date_time = str(datetime.now().strftime('%Y_%m_%d'))
+        np.save(self.current_path + '/data/real/torque_raw_real_robot_' + date_time, self.arr)
+        np.save(self.current_path + '/data/real/force_raw_real_robot_' +date_time, self.measured_force_arr)
 
-        np.save('force_raw_real_robot', self.measured_force_arr)
-        np.save('torque_raw_real_robot', self.arr)
         import matplotlib.pyplot as plt
         plt.subplot(311)
         w = savgol_filter(self.arr, 501, 2)

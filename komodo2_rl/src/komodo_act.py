@@ -3,7 +3,10 @@ from komodo_model import KomodoEnvironment, torque_listener
 from ddpg import DDPG
 import time
 import numpy as np
+import os
+from datetime import datetime
 
+current_path = os.getcwd()
 t_listener = torque_listener()
 env = KomodoEnvironment()
 state_shape = env.state_shape
@@ -30,6 +33,11 @@ t_listener.torque_plot()
 print('Resetting joint positions')
 env.reset()
 print('Reset')
+
+date_time = str(datetime.now().strftime('%Y_%m_%d'))
+np.save(current_path + '/data/real/observation_' + date_time, observation_arr)
+np.save(current_path + '/data/real/action_' + date_time,action_arr)
+
 import matplotlib.pyplot as plt
 #plt.plot(observation_arr[:][:])
 #plt.show()
