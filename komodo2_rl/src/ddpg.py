@@ -79,6 +79,7 @@ class Models:
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.relu(x)
+            # Scale output to -action_bound to action_bound
             actions = tf.layers.Dense(num_actions,
                                       activation=tf.tanh,
                                       kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))(x)
@@ -130,7 +131,7 @@ class Models:
         # Compute Q targets for current states (y_i)
         # critic_target - Get predicted next-state actions and Q values from target  (Q_target_next_state)
         Q_targets = rewards + (gamma * critic_target) * (1. - dones)  # yi via algorithm
-        actor_loss = tf.reduce_mean(-critic_of_actor)
+        actor_loss = tf.reduce_mean(-critic_of_actor)  # This gradient will be provided by the critic network
         tf.losses.add_loss(actor_loss)
         critic_loss = tf.losses.huber_loss(Q_targets,critic)  # Compute TD Error
         return actor_loss, critic_loss
@@ -144,6 +145,17 @@ class Models:
             critic_opt = tf.train.AdamOptimizer(critic_lr).minimize(critic_loss, var_list=critic_vars)
         return actor_opt, critic_opt
 
+
+def build_summaries():
+    episode_reward = tf.Variable(0.)
+    tf.summary.scalar("Reward", episode_reward)
+    episode_ave_max_q = tf.Variable(0.)
+    tf.summary.scalar("Qmax Value", episode_ave_max_q)
+
+    summary_vars = [episode_reward, episode_ave_max_q]
+    summary_ops = tf.summary.merge_all()
+
+    return summary_ops, summary_vars
 # ===========================
 #   DDPG Agent
 # ===========================
@@ -208,6 +220,12 @@ class DDPG:
             self.episode_num += 1
             eps_reward = self.total_reward
             print('Episode {}: total reward={:7.4f}, count={}'.format(self.episode_num,self.total_reward,self.count))
+            summary_str = self.sess.run(self.summary_ops, feed_dict={
+                self.summary_vars[0]: eps_reward,
+                self.summary_vars[1]: eps_reward / float(self.count)  # need to change to average Q
+            })
+            self.writer.add_summary(summary_str, self.episode_num)
+            self.writer.flush()
             self.reset_episode_vars()
             return action, eps_reward
         else:
@@ -217,7 +235,7 @@ class DDPG:
         """Returns actions for given state(s) as per current policy."""
         actions = self.sess.run(self.models.actor, feed_dict={self.models.input_state:states})
         noise = self.noise.sample()
-        # print('noise:',noise)
+        print('Noise : {:0.2f}     {:0.2f}     {:0.2f}').format(noise[0], noise[1], noise[2])  # action : [ vel , arm , bucket ]
         return np.clip(actions + noise,a_min=-1.,a_max=1.).reshape(self.action_shape)
 
     def act_without_noise(self, states):
@@ -249,7 +267,11 @@ class DDPG:
 
         """
         self.sess = tf.Session()
+        self.summary_ops, self.summary_vars = build_summaries()
         self.sess.run(tf.global_variables_initializer())
+
+        self.writer = tf.summary.FileWriter('./graphs', self.sess.graph)
+
         actor_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
         actor_target_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='target_actor')
         critic_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='critic')

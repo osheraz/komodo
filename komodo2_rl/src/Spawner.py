@@ -193,7 +193,7 @@ sdf_sand_box = """<sdf version='1.6'>
         <pose frame=''>0 0 0 1.5708 -0 0</pose>
         <geometry>
           <mesh>
-            <scale>1 1.2 1</scale>
+            <scale>1 1 1</scale>
             <uri>model://sand_box_osher/meshes/sand_box_osher.STL</uri>
           </mesh>
         </geometry>
@@ -202,7 +202,7 @@ sdf_sand_box = """<sdf version='1.6'>
         <pose frame=''>0 0 0 1.5708 -0 0</pose>
         <geometry>
           <mesh>
-            <scale>1 1.2 1</scale>
+            <scale>1 1 1</scale>
             <uri>model://sand_box_osher/meshes/sand_box_osher.STL</uri>
           </mesh>
         </geometry>

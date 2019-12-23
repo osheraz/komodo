@@ -450,7 +450,7 @@ class KomodoEnvironment:
         w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
 
         if self.particle:
-            reward_par = 0.125 + 0.25 * w
+            reward_par =  0.25 * w
             reward_arm = -self.joint_state[1] - self.joint_state[2]
             reward_tot += reward_par + reward_arm
         else:

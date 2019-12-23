@@ -17,14 +17,14 @@ print('env reset')
 observation, done = env.reset()
 action = agent.act(observation)
 observation, reward, done = env.step(action)
-noise_sigma = 0.15
+noise_sigma = 0.3
 save_cutoff = 1
 cutoff_count = 0
 save_count = 0
 curr_highest_eps_reward = -1000.0
 for i in range(max_episode):
     if i % 100 == 0 and noise_sigma>0.03:
-        agent.noise = OUNoise(agent.nb_actions,sigma=noise_sigma)
+        agent.noise = OUNoise(agent.num_actions,sigma=noise_sigma)
         noise_sigma /= 2.0
     step_num = 0
     while done == False:
