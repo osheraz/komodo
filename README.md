@@ -50,7 +50,7 @@ roslaunch komodo2 komodo2.launch gazebo:=true
 python komodo_gazebo_act.py
 ```
 
-#### learned agent on real quadruped
+#### learned agent on real robot
 
 - on quadruped
 ```
