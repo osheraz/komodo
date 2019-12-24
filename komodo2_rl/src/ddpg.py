@@ -294,12 +294,12 @@ class DDPG:
         self.saver.restore(self.sess,path)
 
     def save_memory(self):
-        mem_file = open(self.current_path + '/agent_mem.p','w')
+        mem_file = open(self.current_path + '/replay_buffer_memory.p','w')
         pickle.dump(self.memory,mem_file)
         mem_file.close()
 
     def load_memory(self,path):
-        mem_file = open(self.current_path + '/agent_mem.p','r')
+        mem_file = open(self.current_path + '/replay_buffer_memory.p','r')
         mem = pickle.load(mem_file)
         self.memory = mem
         mem_file.close()
