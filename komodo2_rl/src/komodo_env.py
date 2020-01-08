@@ -431,33 +431,33 @@ class KomodoEnvironment:
         """
         # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
         # bucket_joint = self.joint_state[2]
-        reward_ground = 0
-        reward_arm = 0
-        reward_par = 0
 
         max_particle = 6
-        ground = 0.02  # Ground treshhold
-
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
-        bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])
-        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
+        bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
         arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
         loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
 
         # Positive Rewards:
-        reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
-        reward_tot = reward_dist
-        w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
 
         if self.particle:
-            reward_par =  0.25 * w
+            w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
+            reward_dist = (1 - math.tanh(arm_dist) ** 2)
+            reward_par = 0.1 * w
             reward_arm = -self.joint_state[1] - self.joint_state[2]
-            reward_tot += reward_par + reward_arm
+            reward_tot = reward_par + reward_arm + reward_dist
         else:
+            reward_dist = 0.25 * (1 - math.tanh(loc_dist) ** 2)
             reward_arm = -0.5*self.bucket_link_z  # 0.X
-            reward_tot += reward_arm
+            reward_tot = reward_arm + reward_dist
 
-        # Negative Rewards:
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
+        #  Negative Rewards:
+        if (pos[2] > -0.001):
+            reward_tot += -1000*abs(pos[2])
+
         # if self.z_tip < ground:# case z is bigger then ground
         #     reward_ground = -0.125
         #     reward_tot += reward_ground

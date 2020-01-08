@@ -87,7 +87,7 @@ class torque_listener:
     def torque_plot(self):
         self.sub.unregister()
         self.sub_measured.unregister()
-        date_time = str(datetime.now().strftime('%Y_%m_%d'))
+        date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
         np.save(self.current_path + '/data/real/torque_raw_real_robot_' + date_time, self.arr)
         np.save(self.current_path + '/data/real/force_raw_real_robot_' +date_time, self.measured_force_arr)
 
