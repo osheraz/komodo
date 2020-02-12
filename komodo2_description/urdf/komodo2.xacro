@@ -604,7 +604,7 @@
       link="arm" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="30.0" lower="-0.2" upper="0.32" velocity="0.2"/>
+    <limit effort="30.0" lower="-0.1" upper="0.32" velocity="0.2"/>
     <dynamics damping="40" friction="0.1"/>
   </joint>
 
@@ -622,7 +622,7 @@
     <axis
       xyz="-1 0 0" />
     <dynamics damping="1" friction="0.0"/>
-    <limit effort="7.0" lower="-0.5" upper="0.548" velocity="0.01"/>
+    <limit effort="7.0" lower="-0.5" upper="0.9" velocity="0.01"/>
   </joint>
 
 
