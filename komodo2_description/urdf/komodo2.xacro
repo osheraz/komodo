@@ -516,14 +516,14 @@
         rpy="0 0 0" />
       <mass
         value="1.6541" />
-      <!--inertia
+      <inertia
         ixx="0.020029"
         ixy="-3.1779E-16"
         ixz="1.6265E-16"
         iyy="0.0233"
         iyz="0.0034648"
-        izz="0.041275" /-->
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        izz="0.041275" />
+      <!--inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" /-->
     </inertial>
     <visual>
       <origin
@@ -554,16 +554,15 @@
         rpy="0 0 0" />
       <mass
         value="0.74403" />
-      <!--inertia
+      <inertia
         ixx="0.00060709"
         ixy="1.575E-16"
         ixz="4.731E-16"
         iyy="0.0060723"
         iyz="-4.2694E-06"
-        izz="0.0066375" /-->
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+        izz="0.0066375" />
+      <!--inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" /-->
     </inertial>
-
     <visual>
       <origin
         xyz="0 0 0"
@@ -605,7 +604,8 @@
       link="arm" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="30.0" lower="-0.2" upper="0.32" velocity="0.07"/>
+    <limit effort="30.0" lower="-0.2" upper="0.32" velocity="0.2"/>
+    <dynamics damping="40" friction="0.1"/>
   </joint>
 
 
@@ -621,7 +621,8 @@
       link="bucket" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="20.0" lower="-0.5" upper="0.548" velocity="0.05"/>
+    <dynamics damping="1" friction="0.0"/>
+    <limit effort="7.0" lower="-0.5" upper="0.548" velocity="0.01"/>
   </joint>
 
 

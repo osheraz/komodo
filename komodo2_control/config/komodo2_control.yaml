@@ -53,10 +53,10 @@ arm_position_controller:
     #type: position_controllers/JointPositionController
     type: effort_controllers/JointPositionController
     joint: arm_joint
-    #pid: {p: 100.0, i: 0.01, d: 10.0}
-    pid: {p: 9000.0, i: 0.1, d: 500.0}
+    pid: {p: 1000.0, i: 0.1, d: 10.0}
+    #pid: {p: 9000.0, i: 0.1, d: 500.0}
 bucket_position_controller:
     type: effort_controllers/JointPositionController
     joint: bucket_joint
-    #pid: {p: 50.0, i: 0.01, d: 5.0}
-    pid: {p: 9000.0, i: 0.1, d: 500.0}
+    pid: {p: 7.0, i: 0.1, d: 0.01}
+    #pid: {p: 9000.0, i: 0.1, d: 500.0}

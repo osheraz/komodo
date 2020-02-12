@@ -34,7 +34,7 @@ print('Resetting joint positions')
 env.reset()
 print('Reset')
 
-date_time = str(datetime.now().strftime('%Y_%m_%d'))
+date_time =  str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
 np.save(current_path + '/data/real/observation_' + date_time, observation_arr)
 np.save(current_path + '/data/real/action_' + date_time,action_arr)
 

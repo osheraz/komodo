@@ -5,9 +5,10 @@ from torque_listener import TorqueListener
 import numpy as np
 import os
 from datetime import datetime
+import rospy
 import matplotlib.pyplot as plt
 
-
+save = 0
 current_path = os.getcwd()
 t_listener = TorqueListener()
 env = KomodoEnvironment()
@@ -17,7 +18,10 @@ agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
                                         actor_lr=0.0005, critic_lr=0.001, use_layer_norm=True)
 print('DDPG agent configured')
 agent.load_model(agent.current_path + '/model/model.ckpt')
-max_episode = 2
+max_episode = 10
+particle_arr = np.array([1])
+time_arr = np.array([1])
+
 for i in range(max_episode):
     print('---------------------------env reset---------------------------------------------------------')
     observation, done = env.reset()
@@ -26,6 +30,7 @@ for i in range(max_episode):
     step_num = 0
     observation_arr = observation
     action_arr = action
+    flag = 1
     while done == False:
         step_num += 1
         action = agent.act_without_noise(observation)
@@ -34,11 +39,20 @@ for i in range(max_episode):
         action_arr= np.vstack((action_arr, action))
         print('Reward:', round(reward,3), 'Episode:', i, 'Step:', step_num)
         print('------------------------------------------------------------------------------------------')
+        if observation[0,6] < 0 and observation[0,4] > 0.08*3 and flag:
+            particle_arr = np.vstack((particle_arr, observation[0,0]))  # amount of particle at the end
+            time_arr = np.vstack((time_arr, step_num))  # time elapsed from episode start
+            flag = 0
+    if i == 0 :
+        full_observation_arr = observation_arr
+    else:
+        full_observation_arr = np.vstack((full_observation_arr, observation_arr))
 
-date_time =  str(datetime.now().strftime('%Y_%m_%d'))
-np.save(current_path + '/data/sim/observation_' + date_time,observation_arr)
-np.save(current_path + '/data/sim/action_' + date_time,action_arr)
-t_listener.force_plot()
-
-#plt.plot(observation_arr[:][:])
-#plt.show()
+if save:
+    date_time =  str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
+    np.save(current_path + '/data/sim/particle_end'+ date_time, particle_arr)
+    np.save(current_path + '/data/sim/time_end'+ date_time, time_arr)
+    np.save(current_path + '/data/sim/full_observation' + date_time, full_observation_arr)
+    np.save(current_path + '/data/sim/observation_' + date_time,observation_arr)
+    np.save(current_path + '/data/sim/action_' + date_time,action_arr)
+    t_listener.force_plot()

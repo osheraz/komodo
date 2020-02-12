@@ -19,7 +19,7 @@ from Spawner import Spawner
 from matplotlib import path
 import math
 import pandas
-
+from random import randint
 
 class Actions:
     def __init__(self):
@@ -65,6 +65,8 @@ class Pile:
         self.sand_box_y = 0.301
         self.sand_box_z = 0.0
         self.sand_box_height = 0.25
+        self.cur_height = 0
+        self.cur_angle = 0
         self.center_x = self.sand_box_x / 2
         self.center_z = self.sand_box_z / 2
         self.HALF_KOMODO = 0.53 / 2
@@ -105,11 +107,11 @@ class Pile:
         for k in range(h):
             #w = w - 1
             l = l - 1
-            for j in range(-w/2 + 1, w/2):
+            for j in range(-w/2 , w/2):
                 for i in range(0,l):
                     count +=1
                     name = "particle" + str(count)
-                    pos = [i*self.size*0.25 , j*self.size*0.25 , self.radius*(1+2*k) ]
+                    pos = [(2*i+1)*self.radius , (2*j+1)*self.radius, self.radius*(1+2*k) ]
                     rot = [0.0, 0.0, 0.0]
                     # req = self.spawner.create_cube_request(name, pos[0], pos[1], pos[2],
                     #                                              rot[0], rot[1], rot[2],
@@ -121,24 +123,68 @@ class Pile:
 
         self.num_particle = count
 
-    def set_pile(self):
+    def set_pile(self,flag):
         count = 0
         l = int(self.length/self.size)
         w = int(self.width/self.size)
         h = int(self.height/self.size)
         self.model_state_proxy(self.pile_box_req)
+        eps = 0.001
 
         for k in range(h):
-            #w = w - 1
             l = l - 1
-            for j in range(-w/2 + 1, w/2):
+            for j in range(-w/2, w/2):
                 for i in range(0,l):
                     count +=1
+
+                    if flag == 1 and  k == h-1 :
+                        self.pile_state_req = SetModelStateRequest()
+                        self.pile_state_req.model_state = ModelState()
+                        self.pile_state_req.model_state.model_name = 'particle' + str(count)
+                        self.pile_state_req.model_state.pose.position.x = (self.radius + eps) * (1 + 2 * i)-1
+                        self.pile_state_req.model_state.pose.position.y = (self.radius + eps) * (1 + 2 * j)
+                        self.pile_state_req.model_state.pose.position.z = self.radius * (1 )
+                        self.pile_state_req.model_state.pose.orientation.x = 0.0
+                        self.pile_state_req.model_state.pose.orientation.y = 0.0
+                        self.pile_state_req.model_state.pose.orientation.z = 0.0
+                        self.pile_state_req.model_state.pose.orientation.w = 0.0
+                        self.pile_state_req.model_state.twist.linear.x = 0.0
+                        self.pile_state_req.model_state.twist.linear.y = 0.0
+                        self.pile_state_req.model_state.twist.linear.z = 0.0
+                        self.pile_state_req.model_state.twist.angular.x = 0.0
+                        self.pile_state_req.model_state.twist.angular.y = 0.0
+                        self.pile_state_req.model_state.twist.angular.z = 0.0
+                        self.pile_state_req.model_state.reference_frame = 'world'
+                        self.model_state_proxy(self.pile_state_req)
+                        continue
+
+
+                    if flag == 2 and k == 0 and i == l-1:
+                        self.pile_state_req = SetModelStateRequest()
+                        self.pile_state_req.model_state = ModelState()
+                        self.pile_state_req.model_state.model_name = 'particle' + str(count)
+                        self.pile_state_req.model_state.pose.position.x = (self.radius + eps) * (1 + 2 * i)-1
+                        self.pile_state_req.model_state.pose.position.y = (self.radius + eps) * (1 + 2 * j)
+                        self.pile_state_req.model_state.pose.position.z = self.radius * (1 )
+                        self.pile_state_req.model_state.pose.orientation.x = 0.0
+                        self.pile_state_req.model_state.pose.orientation.y = 0.0
+                        self.pile_state_req.model_state.pose.orientation.z = 0.0
+                        self.pile_state_req.model_state.pose.orientation.w = 0.0
+                        self.pile_state_req.model_state.twist.linear.x = 0.0
+                        self.pile_state_req.model_state.twist.linear.y = 0.0
+                        self.pile_state_req.model_state.twist.linear.z = 0.0
+                        self.pile_state_req.model_state.twist.angular.x = 0.0
+                        self.pile_state_req.model_state.twist.angular.y = 0.0
+                        self.pile_state_req.model_state.twist.angular.z = 0.0
+                        self.pile_state_req.model_state.reference_frame = 'world'
+                        self.model_state_proxy(self.pile_state_req)
+                        continue
+
                     self.pile_state_req = SetModelStateRequest()
                     self.pile_state_req.model_state = ModelState()
                     self.pile_state_req.model_state.model_name = 'particle'+str(count)
-                    self.pile_state_req.model_state.pose.position.x = i*self.size*0.25
-                    self.pile_state_req.model_state.pose.position.y = j*self.size*0.25
+                    self.pile_state_req.model_state.pose.position.x = (2*i+1)*(self.radius+eps)
+                    self.pile_state_req.model_state.pose.position.y = (self.radius+ eps)*(1+2*j)
                     self.pile_state_req.model_state.pose.position.z = self.radius*(1+2*k)
                     self.pile_state_req.model_state.pose.orientation.x = 0.0
                     self.pile_state_req.model_state.pose.orientation.y = 0.0
@@ -152,6 +198,7 @@ class Pile:
                     self.pile_state_req.model_state.twist.angular.z = 0.0
                     self.pile_state_req.model_state.reference_frame = 'world'
                     self.model_state_proxy(self.pile_state_req)
+
 
     def particle_location(self,num_p):
         px_arr = np.zeros(num_p)
@@ -220,7 +267,7 @@ class KomodoEnvironment:
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 +6,)
+        self.state_shape = (self.nb_actions * 2 + 6,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -331,8 +378,21 @@ class KomodoEnvironment:
             if self.pile_flag:
                 self.pile.create_pile()
                 self.pile_flag = False
+                self.pile.cur_height = 6 * self.pile.radius
+                self.pile.cur_angle = np.pi / 4
             else:
-                self.pile.set_pile()
+                x = 3 # randint(1, 3)
+                self.pile.set_pile(x)
+                if x == 1:
+                    self.pile.cur_height = 4 * self.pile.radius
+                    self.pile.cur_angle = np.pi / 4
+                if x == 2:
+                    self.pile.cur_height = 6 * self.pile.radius
+                    self.pile.cur_angle = np.pi * 0.312
+                if x == 3:
+                    self.pile.cur_height = 6 * self.pile.radius
+                    self.pile.cur_angle = np.pi / 4
+
         except rospy.ServiceException as e:
             print('/gazebo/unpause_physics service call failed')
 
@@ -359,6 +419,8 @@ class KomodoEnvironment:
 
         diff_joint = np.zeros(self.nb_actions)
         normed_js = self.normalize_joint_state(self.joint_state)
+
+        pile_data = np.array([self.pile.cur_height, self.pile.cur_angle])
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
 
@@ -431,36 +493,38 @@ class KomodoEnvironment:
         """
         # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
         # bucket_joint = self.joint_state[2]
-        reward_ground = 0
-        reward_arm = 0
-        reward_par = 0
 
-        max_particle = 6
-        ground = 0.02  # Ground treshhold
-
+        max_particle = 8
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
-        bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])
-        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height])  # [ 0.35,0.25]
-        arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
+        bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height + 0.1])  # [ 0.35,0.25]
+        arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0] * 2/3 )**2 + (bucket_pos[1] - (min_end_pos[1]))**2)
         loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
 
         # Positive Rewards:
-        reward_dist = 0.25 * (1 - math.tanh(arm_dist) ** 2)
-        reward_tot = reward_dist
-        w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
-
+        reward_par = 0
         if self.particle:
-            reward_par = 0.125 + 0.25 * w
-            reward_arm = -self.joint_state[1] - self.joint_state[2]
-            reward_tot += reward_par + reward_arm
+            w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
+            reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
+            reward_par = 0.25 * w
+            reward_arm = - 1.5*self.joint_state[2] + 1.0 *self.bucket_link_z #- self.joint_state[1]
+            reward_tot = reward_par + reward_arm + reward_dist
         else:
-            reward_arm = -0.5*self.bucket_link_z  # 0.X
-            reward_tot += reward_arm
+            reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4)
+            reward_arm = -1.0 *self.bucket_link_z  # 0.X
+            reward_tot = reward_arm + reward_dist
 
-        # Negative Rewards:
-        # if self.z_tip < ground:# case z is bigger then ground
-        #     reward_ground = -0.125
-        #     reward_tot += reward_ground
+
+        #  Negative Rewards:
+        if (pos[2] > -0.001):
+            reward_tot += -100*abs(pos[2])
+        if (x_tip < 0):
+            reward_tot += -100*abs(x_tip)
+
+        print('Reward dist:    {:0.2f}').format(reward_dist)
+        print('Reward par:     {:0.2f}').format(reward_par)
+        print('Reward arm:     {:0.2f}').format(reward_arm)
 
         return reward_tot
 
@@ -470,15 +534,11 @@ class KomodoEnvironment:
 
         # print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
         #                                                                        self.joint_state[2])
-        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
+        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance","PHeight", "PAngle", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
         df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
-        print(df.to_string(index=False))
+        # print(df.to_string(index=False))
 
-        # print('state:   {}'.format(np.round(self.state,2)))
-
-
-
-        print('Action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
+        # print('Action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
 
         action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
@@ -494,11 +554,13 @@ class KomodoEnvironment:
 
         self.reward = self.reward_function(pos, p_in_bucket)
 
-        print('Reward:    {:0.2f}').format(self.reward)
+        print('Reward:         {:0.2f}').format(self.reward)
 
         normed_js = self.normalize_joint_state(self.joint_state) # TODO: Check without diff + Pos Z
 
         diff_joint = (normed_js - self.last_joint)
+
+        pile_data = np.array([self.pile.cur_height, self.pile.cur_angle])
 
         arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
 
@@ -511,7 +573,7 @@ class KomodoEnvironment:
         self.last_action = action
 
         curr_time = rospy.get_time()
-        print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
+        # print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
 
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True

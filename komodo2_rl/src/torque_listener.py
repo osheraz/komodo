@@ -28,7 +28,7 @@ class TorqueListener:
     def force_plot(self):
         self.sub.unregister()
         import matplotlib.pyplot as plt
-        date_time = str(datetime.now().strftime('%Y_%m_%d'))
+        date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
         np.save(self.current_path + '/data/sim/torque_simulation_' + date_time, self.arr)
         plt.subplot(311)
         w = savgol_filter(self.arr, 501, 2)
