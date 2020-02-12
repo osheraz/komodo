@@ -58,8 +58,7 @@ class Actions:
 
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
-        # maprange([0.32, -0.2],[350, 780],des_cmd[:2])
-        des_cmd[:2] = maprange([0.32, -0.2],[400, 780],des_cmd[:2])
+        des_cmd[:2] = maprange([0.32, -0.2],[380, 780],des_cmd[:2])
         des_cmd[2:] = maprange([-0.5, 0.548], [20, 450],des_cmd[2:])
         return des_cmd
 
@@ -178,7 +177,7 @@ class KomodoEnvironment:
         self.old_fb = np.array(self.fb)
         self.fb = np.array(data.data)
         self.velocity_motor = (self.fb - self.old_fb) / dt  # SensorValue per second
-        self.joint_state[1] = maprange([400, 780], [0.32, -0.2], self.fb[0])
+        self.joint_state[1] = maprange([380, 780], [0.32, -0.2], self.fb[0])
         self.joint_state[2] = maprange([20, 450], [-0.5,0.548], self.fb[2])
 
     def update_distace(self,msg):
@@ -195,7 +194,7 @@ class KomodoEnvironment:
 
     def update_force(self, data):
         min_w = 0
-        max_w = 20
+        max_w = 10
         force = abs(data.data)
         self.particle = np.array([maprange([min_w, max_w], [0, 8], force)])
 

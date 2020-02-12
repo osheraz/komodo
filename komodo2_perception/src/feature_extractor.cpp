@@ -16,7 +16,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/vfh.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <komodo_perception/GetNormals.h>
+#include <komodo2_perception/GetNormals.h>
 //#include <komodo_perception/GetFloatArrayFeature.h>
 
 /*
@@ -74,7 +74,7 @@ private:
     normals_out_pub_.publish(normals_out_msg);
   }
 
-  bool getNormalsReq(komodo_perception::GetNormals::Request &req, komodo_perception::GetNormals::Response &rsp)
+  bool getNormalsReq(komodo2_perception::GetNormals::Request &req, komodo2_perception::GetNormals::Response &rsp)
   {
     rsp.cluster = req.cluster;
 
