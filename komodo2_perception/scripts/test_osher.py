@@ -211,7 +211,7 @@ def pcl_callback(pcl_msg):
     pcl_table_pub.publish(ros_cloud_table)
     pcl_cluster_pub.publish(ros_cluster_cloud)
 
-    # TODO: Classify the clusters! (loop through each detected cluster one at a time)
+    # TODO: Classify the clusters (loop through each detected cluster one at a time)
     detected_objects_labels = []
     detected_objects = []
 

@@ -4,6 +4,7 @@ from ddpg import OUNoise, DDPG
 import numpy as np
 from datetime import datetime
 import os
+import matplotlib.pyplot as plt
 
 np.set_printoptions(precision=1)
 current_path = os.getcwd()
@@ -34,8 +35,9 @@ for i in range(max_episode):
         step_num += 1
         action = agent.step(observation, reward, done)
         observation, reward, done = env.step(action)
-        print('\nreward:',round(reward,3),'episode:', i, 'step:',step_num,'highest reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
+        print('reward:',round(reward,3),'episode:', i, 'step:',step_num,'highest reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
         print('\n-----------------------------------------------------------------------------------------------------\n')
+
 
     action, eps_reward = agent.step(observation, reward, done)
     tot_rewards.append(eps_reward)
@@ -53,6 +55,5 @@ for i in range(max_episode):
 date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
 np.save(current_path + '/data/sim/eps_rewards' + date_time, tot_rewards)
 
-import matplotlib.pyplot as plt
 plt.plot(tot_rewards)
 plt.show()
