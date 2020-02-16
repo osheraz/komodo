@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import matplotlib.pyplot as plt
 
+HALF_KOMODO = 0.53 / 2
 np.set_printoptions(precision=1)
 current_path = os.getcwd()
 env = KomodoEnvironment()
@@ -25,12 +26,16 @@ save_cutoff = 1
 cutoff_count = 0
 save_count = 0
 curr_highest_eps_reward = -1000.0
+save = 1
+particle_arr = np.array([1])
+time_arr = np.array([1])
 
 for i in range(max_episode):
     if i % 100 == 0 and noise_sigma>0.03:
         agent.noise = OUNoise(agent.num_actions,sigma=noise_sigma)
         noise_sigma /= 2.0
     step_num = 0
+    flag = 1
     while done == False:
         step_num += 1
         action = agent.step(observation, reward, done)
@@ -38,6 +43,12 @@ for i in range(max_episode):
         print('reward:',round(reward,3),'episode:', i, 'step:',step_num,'highest reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
         print('\n-----------------------------------------------------------------------------------------------------\n')
 
+        print('X_tip: ', round(observation[0, 5] - observation[0, 1] + HALF_KOMODO , 3),' Z tip: ', round(observation[0, 2], 3))
+        if observation[0,6] < 0 and observation[0,2] > 0.27 and flag:
+            particle = observation[0,0]  # amount of particle at the end
+            timer =  step_num  # time elapsed from episode start
+            print('Particle:', round(observation[0,0], 3),  'Step:', step_num)
+            flag = 0
 
     action, eps_reward = agent.step(observation, reward, done)
     tot_rewards.append(eps_reward)
@@ -46,14 +57,22 @@ for i in range(max_episode):
         curr_highest_eps_reward = eps_reward
     if cutoff_count >= save_cutoff:
         save_count += 1
-        print('saving_model at episode:',i)
+        #print('saving_model at episode:',i)
         agent.save_model()
         agent.save_memory()
         cutoff_count = 0
+    if flag:
+        particle_arr = np.vstack((particle_arr, 0))  # amount of particle at the end
+        time_arr = np.vstack((time_arr, 0))  # time elapsed from episode start
+    else:
+        particle_arr = np.vstack((particle_arr, particle))  # amount of particle at the end
+        time_arr = np.vstack((time_arr, timer))  # time elapsed from episode start
     observation, done = env.reset()
 
-date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
-np.save(current_path + '/data/sim/eps_rewards' + date_time, tot_rewards)
-
+if save:
+    date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
+    np.save(current_path + '/data/sim/eps_rewards' + date_time, tot_rewards)
+    np.save(current_path + '/data/sim/particle_end' + date_time, particle_arr)
+    np.save(current_path + '/data/sim/time_end' + date_time, time_arr)
 plt.plot(tot_rewards)
 plt.show()

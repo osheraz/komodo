@@ -498,17 +498,17 @@ class KomodoEnvironment:
         x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
         bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
-        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height + 0.1])  # [ 0.35,0.25]
-        arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0] * 2/3 )**2 + (bucket_pos[1] - (min_end_pos[1]))**2)
+        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
+        arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0]+0.1))**2 + (bucket_pos[1] - (min_end_pos[1]))**2)
         loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
 
         # Positive Rewards:
         reward_par = 0
         if self.particle:
             w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
-            reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
-            reward_par = 0.25 * w
-            reward_arm = - 1.5*self.joint_state[2] + 1.0 *self.bucket_link_z #- self.joint_state[1]
+            reward_dist = 2* (1 - math.tanh(arm_dist) ** 0.4)
+            reward_par = 0.15 * w
+            reward_arm = - 1.5*self.joint_state[2] + 1.0 *self.z_tip #- self.joint_state[1]
             reward_tot = reward_par + reward_arm + reward_dist
         else:
             reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4)
@@ -522,9 +522,9 @@ class KomodoEnvironment:
         if (x_tip < 0):
             reward_tot += -100*abs(x_tip)
 
-        print('Reward dist:    {:0.2f}').format(reward_dist)
-        print('Reward par:     {:0.2f}').format(reward_par)
-        print('Reward arm:     {:0.2f}').format(reward_arm)
+        # print('Reward dist:    {:0.2f}').format(reward_dist)
+        # print('Reward par:     {:0.2f}').format(reward_par)
+        # print('Reward arm:     {:0.2f}').format(reward_arm)
 
         return reward_tot
 
@@ -534,7 +534,7 @@ class KomodoEnvironment:
 
         # print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
         #                                                                        self.joint_state[2])
-        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance","PHeight", "PAngle", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
+        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
         df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
         # print(df.to_string(index=False))
 
@@ -554,7 +554,7 @@ class KomodoEnvironment:
 
         self.reward = self.reward_function(pos, p_in_bucket)
 
-        print('Reward:         {:0.2f}').format(self.reward)
+        #print('Reward:         {:0.2f}').format(self.reward)
 
         normed_js = self.normalize_joint_state(self.joint_state) # TODO: Check without diff + Pos Z
 
