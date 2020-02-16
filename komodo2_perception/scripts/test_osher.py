@@ -2,16 +2,14 @@
 
 # Import modules
 import numpy as np
-import sklearn
-from sklearn.preprocessing import LabelEncoder
 import pickle
-from komodo_perception.srv import GetNormals
+from komodo2_perception.srv import GetNormals
 from komodo_perception.features import compute_color_histograms
 from komodo_perception.features import compute_normal_histograms
 from visualization_msgs.msg import Marker
 from komodo_perception.marker_tools import *
-from komodo_perception.msg import DetectedObjectsArray
-from komodo_perception.msg import DetectedObject
+from komodo2_perception.msg import DetectedObjectsArray
+from komodo2_perception.msg import DetectedObject
 from komodo_perception.pcl_helper import *
 
 import rospy
@@ -112,10 +110,10 @@ def  extract_cloud_objects_and_cloud_table(pcl_data,ransac_segmentation):
     :param ransac_segmentation:
     :return: cloud table and cloud object
     '''
-    inliers, coefficients = ransac_segmentation.segment()
-    cloud_table = pcl_data.extract(inliers, negative=False)
-    cloud_objects = pcl_data.extract(inliers, negative=True)
-    return cloud_table,cloud_objects
+    inlier_indices, coefficients = ransac_segmentation.segment()
+    inliers = pcl_data.extract(inlier_indices, negative=False)
+    outliers = pcl_data.extract(inlier_indices, negative=True)
+    return inliers,outliers
 
 
 def do_euclidean_clustering(white_cloud):
@@ -140,9 +138,9 @@ def do_euclidean_clustering(white_cloud):
     for j, indices in enumerate(cluster_indices):
         for i, indice in enumerate(indices):
             cluster_sep = ([white_cloud[indice][0],
-                                             white_cloud[indice][1],
-                                             white_cloud[indice][2],
-                                             rgb_to_float(cluster_color[j])])
+                             white_cloud[indice][1],
+                             white_cloud[indice][2],
+                             rgb_to_float(cluster_color[j])])
             color_cluster_point_list.append(cluster_sep)
 
     cluster_cloud = pcl.PointCloud_PointXYZRGB()
@@ -172,17 +170,17 @@ def pcl_callback(pcl_msg):
     cloud = ros_to_pcl(pcl_msg)
 
     # TODO: Statistical Outlier Filtering
-    cloud = do_statistical_outlier_filtering(cloud,10,0.001)
+    #cloud = do_statistical_outlier_filtering(cloud,10,0.001)
 
     # TODO: Voxel Grid Downsampling
     LEAF_SIZE = 0.01
     cloud = do_voxel_grid_downssampling(cloud,LEAF_SIZE)
 
     # TODO: PassThrough Filter
-    # filter_axis ='z'
-    # axis_min = 0.0
-    # axis_max =0.25
-    # cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
+    filter_axis ='z'
+    axis_min = 0.0
+    axis_max = 0.25
+    cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
 
     # filter_axis = 'x'
     # axis_min = 0
@@ -191,7 +189,7 @@ def pcl_callback(pcl_msg):
 
 
     # TODO: RANSAC Plane Segmentation
-    ransac_segmentation = do_ransac_plane_segmentation(cloud,pcl.SACMODEL_PLANE,pcl.SAC_RANSAC,0.01)
+    ransac_segmentation = do_ransac_plane_segmentation(cloud,pcl.SACMODEL_PLANE,pcl.SAC_RANSAC,0.001)
 
 
     # TODO: Extract inliers and outliers
@@ -225,7 +223,6 @@ def pcl_callback(pcl_msg):
         normals = get_normals(ros_cluster)
         normal_hists = compute_normal_histograms(normals)
         feature = np.concatenate((color_hists, normal_hists))
-
         get_centeroid(pcl_cluster)
 
 

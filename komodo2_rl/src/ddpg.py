@@ -220,12 +220,12 @@ class DDPG:
             self.episode_num += 1
             eps_reward = self.total_reward
             print('Episode {}: total reward={:7.4f}, count={}'.format(self.episode_num,self.total_reward,self.count))
-            summary_str = self.sess.run(self.summary_ops, feed_dict={
-                self.summary_vars[0]: eps_reward,
-                self.summary_vars[1]: eps_reward / float(self.count)  # need to change to average Q
-            })
-            self.writer.add_summary(summary_str, self.episode_num)
-            self.writer.flush()
+            # summary_str = self.sess.run(self.summary_ops, feed_dict={
+            #     self.summary_vars[0]: eps_reward,
+            #     self.summary_vars[1]: eps_reward / float(self.count)  # need to change to average Q
+            # })
+            # self.writer.add_summary(summary_str, self.episode_num)
+            # self.writer.flush()
             self.reset_episode_vars()
             return action, eps_reward
         else:
@@ -267,10 +267,10 @@ class DDPG:
 
         """
         self.sess = tf.Session()
-        self.summary_ops, self.summary_vars = build_summaries()
+        # self.summary_ops, self.summary_vars = build_summaries()
         self.sess.run(tf.global_variables_initializer())
 
-        self.writer = tf.summary.FileWriter('./graphs', self.sess.graph)
+        # self.writer = tf.summary.FileWriter('./graphs', self.sess.graph)
 
         actor_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
         actor_target_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='target_actor')
