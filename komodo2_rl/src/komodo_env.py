@@ -259,8 +259,8 @@ class KomodoEnvironment:
                                'rear_left_wheel_joint', 'rear_right_wheel_joint']
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
-        self.max_limit = np.array([0.1, 0.32, 0.548])
-        self.min_limit = np.array([-0.1, -0.2, -0.5])
+        self.max_limit = np.array([0.1, 0.32, 0.9])  # np.array([0.1, 0.32, 0.548])
+        self.min_limit = np.array([-0.1, -0.1, -0.5])  # np.array([-0.1, -0.2, -0.5])
         self.orientation = np.zeros(4)
         self.angular_vel = np.zeros(3)
         self.linear_acc = np.zeros(3)
@@ -506,9 +506,9 @@ class KomodoEnvironment:
         reward_par = 0
         if self.particle:
             w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
-            reward_dist = 2* (1 - math.tanh(arm_dist) ** 0.4)
-            reward_par = 0.15 * w
-            reward_arm = - 1.5*self.joint_state[2] + 1.0 *self.z_tip #- self.joint_state[1]
+            reward_dist = 2 * (1 - math.tanh(arm_dist) ** 0.4)
+            reward_par = 0.25 * w
+            reward_arm = -0.25*self.joint_state[2]  # + 1.0 *self.z_tip #- self.joint_state[1]
             reward_tot = reward_par + reward_arm + reward_dist
         else:
             reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4)
@@ -522,9 +522,9 @@ class KomodoEnvironment:
         if (x_tip < 0):
             reward_tot += -100*abs(x_tip)
 
-        # print('Reward dist:    {:0.2f}').format(reward_dist)
-        # print('Reward par:     {:0.2f}').format(reward_par)
-        # print('Reward arm:     {:0.2f}').format(reward_arm)
+        print('Reward dist:    {:0.2f}').format(reward_dist)
+        print('Reward par:     {:0.2f}').format(reward_par)
+        print('Reward arm:     {:0.2f}').format(reward_arm)
 
         return reward_tot
 
@@ -538,7 +538,7 @@ class KomodoEnvironment:
         df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
         # print(df.to_string(index=False))
 
-        # print('Action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
+        print('Action : {:0.2f}     {:0.2f}     {:0.2f}').format(action[0], action[1], action[2])  # action : [ vel , arm , bucket ]
 
         action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)

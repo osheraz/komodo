@@ -1,5 +1,5 @@
 from __future__ import print_function
-from komodo_env import KomodoEnvironment
+from komodo_env_befordce import KomodoEnvironment
 from ddpg import OUNoise, DDPG
 import numpy as np
 from datetime import datetime
@@ -21,7 +21,7 @@ print('env reset')
 observation, done = env.reset()
 action = agent.act(observation)
 observation, reward, done = env.step(action)
-noise_sigma = 0.3
+noise_sigma = 0.15
 save_cutoff = 1
 cutoff_count = 0
 save_count = 0
@@ -44,7 +44,7 @@ for i in range(max_episode):
         print('\n-----------------------------------------------------------------------------------------------------\n')
 
         print('X_tip: ', round(observation[0, 5] - observation[0, 1] + HALF_KOMODO , 3),' Z tip: ', round(observation[0, 2], 3))
-        if observation[0,6] < 0 and observation[0,2] > 0.27 and flag:
+        if observation[0,6] < 0 and observation[0,2] > 0.2 and flag:
             particle = observation[0,0]  # amount of particle at the end
             timer =  step_num  # time elapsed from episode start
             print('Particle:', round(observation[0,0], 3),  'Step:', step_num)
@@ -63,7 +63,7 @@ for i in range(max_episode):
         cutoff_count = 0
     if flag:
         particle_arr = np.vstack((particle_arr, 0))  # amount of particle at the end
-        time_arr = np.vstack((time_arr, 0))  # time elapsed from episode start
+        time_arr = np.vstack((time_arr, 20))  # time elapsed from episode start
     else:
         particle_arr = np.vstack((particle_arr, particle))  # amount of particle at the end
         time_arr = np.vstack((time_arr, timer))  # time elapsed from episode start

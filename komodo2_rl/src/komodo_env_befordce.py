@@ -212,8 +212,8 @@ class KomodoEnvironment:
                                'rear_left_wheel_joint', 'rear_right_wheel_joint']
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
-        self.max_limit = np.array([0.1, 0.32, 0.548])
-        self.min_limit = np.array([-0.1, -0.2, -0.5])
+        self.max_limit = np.array([0.1, 0.32, 0.9])
+        self.min_limit = np.array([-0.1, -0.1, -0.5])
         self.orientation = np.zeros(4)
         self.angular_vel = np.zeros(3)
         self.linear_acc = np.zeros(3)
@@ -434,33 +434,41 @@ class KomodoEnvironment:
 
         max_particle = 6
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
-        bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
+        bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        # bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
-        arm_dist = math.sqrt((bucket_pos[0] - min_end_pos[0])**2 + (bucket_pos[1] - min_end_pos[1])**2)
+
+        arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
         loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
 
         # Positive Rewards:
-
+        reward_par = 0
         if self.particle:
+            # w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
             w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
-            reward_dist = (1 - math.tanh(arm_dist) ** 2)
-            reward_par = 0.1 * w
-            reward_arm = -self.joint_state[1] - self.joint_state[2]
+            reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
+            reward_par = 0.2 * w
+            reward_arm = - self.joint_state[2] -self.joint_state[1]
             reward_tot = reward_par + reward_arm + reward_dist
         else:
-            reward_dist = 0.25 * (1 - math.tanh(loc_dist) ** 2)
+            reward_dist = 0.25*(1 - math.tanh(arm_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
             reward_arm = -0.5*self.bucket_link_z  # 0.X
             reward_tot = reward_arm + reward_dist
 
-        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
 
         #  Negative Rewards:
         if (pos[2] > -0.001):
-            reward_tot += -1000*abs(pos[2])
+            reward_tot += -100*abs(pos[2])
+        if (x_tip < 0):
+            reward_tot += -100*abs(x_tip)
 
-        # if self.z_tip < ground:# case z is bigger then ground
-        #     reward_ground = -0.125
-        #     reward_tot += reward_ground
+        print('Reward dist:    {:0.2f}').format(reward_dist)
+        print('Reward par:     {:0.2f}').format(reward_par)
+        print('Reward arm:     {:0.2f}').format(reward_arm)
+
 
         return reward_tot
 
@@ -494,7 +502,7 @@ class KomodoEnvironment:
 
         self.reward = self.reward_function(pos, p_in_bucket)
 
-        print('Reward:    {:0.2f}').format(self.reward)
+        # print('Reward:    {:0.2f}').format(self.reward)
 
         normed_js = self.normalize_joint_state(self.joint_state) # TODO: Check without diff + Pos Z
 
@@ -511,7 +519,7 @@ class KomodoEnvironment:
         self.last_action = action
 
         curr_time = rospy.get_time()
-        print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
+        # print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
 
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True
