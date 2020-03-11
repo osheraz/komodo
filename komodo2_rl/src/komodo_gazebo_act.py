@@ -1,5 +1,5 @@
 from __future__ import print_function
-from komodo_env_befordce import KomodoEnvironment
+from komodo_env import KomodoEnvironment
 from ddpg import DDPG
 from torque_listener import TorqueListener
 import numpy as np
