@@ -60,11 +60,11 @@ class Models:
         """
         with tf.variable_scope(name, reuse=reuse):
             init_xavier = tf.contrib.layers.xavier_initializer()
-            x = tf.layers.Dense(130,kernel_initializer=init_xavier)(state)  # outputs = activation(inputs * kernel + bias)
+            x = tf.layers.Dense(40,kernel_initializer=init_xavier)(state)  # outputs = activation(inputs * kernel + bias)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)  # Adds a Layer Normalization layer.
             x = tf.nn.elu(x)
-            x = tf.layers.Dense(100,kernel_initializer=init_xavier)(x)
+            x = tf.layers.Dense(40,kernel_initializer=init_xavier)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
@@ -91,11 +91,11 @@ class Models:
         num_outputs = 1
         with tf.variable_scope(name, reuse=reuse):
             init_xavier = tf.contrib.layers.xavier_initializer()
-            x = tf.layers.Dense(130,kernel_initializer=init_xavier)(state)
+            x = tf.layers.Dense(400,kernel_initializer=init_xavier)(state)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
-            x = tf.layers.Dense(100,kernel_initializer=init_xavier)(x)
+            x = tf.layers.Dense(400,kernel_initializer=init_xavier)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
@@ -120,7 +120,8 @@ class Models:
         target = rewards + gamma * np.squeeze(critic_next)
         td = target - critic
         actor_loss = -tf.log(actor_dist.prob(actor_actions) + 1e-5) * td
-        actor_loss -= 1e-4 * actor_dist.entropy()   # Add cross entropy cost to encourage exploration
+        actor_loss -= 3e-5 * actor_dist.entropy()   # Add cross entropy cost to encourage exploration
+        tf.losses.add_loss(actor_loss)
 
         critic_loss = tf.reduce_mean(tf.squared_difference(tf.squeeze(critic), target))
 
