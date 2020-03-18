@@ -117,10 +117,10 @@ class Models:
 
         # Compute Q targets for current states (y_i)
         # critic_target - Get predicted next-state actions and Q values from target  (Q_target_next_state)
-        target = rewards + gamma * np.squeeze(critic_next)
+        target = rewards + gamma * np.squeeze(critic_next) * (1. - dones)
         td = target - critic
         actor_loss = -tf.log(actor_dist.prob(actor_actions) + 1e-5) * td
-        actor_loss -= 3e-5 * actor_dist.entropy()   # Add cross entropy cost to encourage exploration
+        #actor_loss -= 1e-5 * actor_dist.entropy()   # Add cross entropy cost to encourage exploration
         tf.losses.add_loss(actor_loss)
 
         critic_loss = tf.reduce_mean(tf.squared_difference(tf.squeeze(critic), target))

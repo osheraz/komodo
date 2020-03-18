@@ -454,7 +454,7 @@ class KomodoEnvironment:
             reward_arm = - self.joint_state[2] -self.joint_state[1]
             reward_tot = reward_par + reward_arm + reward_dist
         else:
-            reward_dist = 0.25*(1 - math.tanh(arm_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
+            reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(arm_dist) ** 0.4)
             reward_arm = -0.5*self.bucket_link_z  # 0.X
             reward_tot = reward_arm + reward_dist
 

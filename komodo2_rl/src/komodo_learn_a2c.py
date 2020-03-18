@@ -12,7 +12,7 @@ current_path = os.getcwd()
 env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
-agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
+agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0002, critic_lr=0.001, use_layer_norm=True)
 print('A2C agent configured')
 max_episode = 1000
 tot_rewards = []
