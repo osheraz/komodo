@@ -1,6 +1,8 @@
 from __future__ import print_function
 from komodo_env import KomodoEnvironment
 from ddpg import DDPG
+from a2c import A2C
+
 from torque_listener import TorqueListener
 import numpy as np
 import os
@@ -14,10 +16,18 @@ t_listener = TorqueListener()
 env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
-agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
-                                        actor_lr=0.0005, critic_lr=0.001, use_layer_norm=True)
-print('DDPG agent configured')
-agent.load_model(agent.current_path + '/model/model.ckpt')
+
+model = 'a2c'
+if model == 'ddpg':
+    agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
+                                            actor_lr=0.0005, critic_lr=0.001, use_layer_norm=True)
+    print('DDPG agent configured')
+    agent.load_model(agent.current_path + '/model/model.ckpt')
+elif model == 'a2c':
+    agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0002, critic_lr=0.001, use_layer_norm=True)
+    print('A2C agent configured')
+    agent.load_model(agent.current_path + '/model_a2c/model.ckpt')
+
 max_episode = 10
 particle_arr = np.array([1])
 time_arr = np.array([1])

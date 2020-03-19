@@ -1,6 +1,8 @@
 from __future__ import print_function
 from komodo_env import KomodoEnvironment
 from ddpg import OUNoise, DDPG
+from a2c import A2C
+
 import numpy as np
 from datetime import datetime
 import os
@@ -12,9 +14,16 @@ current_path = os.getcwd()
 env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
-agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
-                                        actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
-print('DDPG agent configured')
+
+model = 'a2c'
+if model == 'ddpg':
+    agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
+                                            actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
+    print('DDPG agent configured')
+elif model == 'a2c':
+    agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0002, critic_lr=0.001, use_layer_norm=True)
+    print('A2C agent configured')
+
 max_episode = 1000
 tot_rewards = []
 print('env reset')
@@ -71,8 +80,8 @@ for i in range(max_episode):
 
 if save:
     date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
-    np.save(current_path + '/data/sim/eps_rewards' + date_time, tot_rewards)
-    np.save(current_path + '/data/sim/particle_end' + date_time, particle_arr)
-    np.save(current_path + '/data/sim/time_end' + date_time, time_arr)
+    np.save(current_path + '/data/sim/eps_rewards' + model + date_time, tot_rewards)
+    np.save(current_path + '/data/sim/particle_end' + model + date_time, particle_arr)
+    np.save(current_path + '/data/sim/time_end' + model + date_time, time_arr)
 plt.plot(tot_rewards)
 plt.show()
