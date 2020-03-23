@@ -43,7 +43,6 @@ class Models:
 
         self.actor_loss, self.critic_loss = self.set_model_loss(self.actor_actions,self.actor_dist,self.critic,self.critic_next,self.rewards, self.dones, self.gamma)
 
-
         self.actor_opt, self.critic_opt = self.set_model_opt(self.actor_loss, self.critic_loss,
                                     self.actor_lr, self.critic_lr)
 
@@ -59,24 +58,26 @@ class Models:
             fc2_units (int): Number of nodes in second hidden layer - right now 100
         """
         with tf.variable_scope(name, reuse=reuse):
-            init_xavier = tf.contrib.layers.xavier_initializer()
-            x = tf.layers.Dense(40,kernel_initializer=init_xavier)(state)  # outputs = activation(inputs * kernel + bias)
+            # init_xavier = tf.contrib.layers.xavier_initializer()
+            if use_layer_norm:
+                x = tf.contrib.layers.layer_norm(state)
+            x = tf.layers.Dense(40)(x)  # outputs = activation(inputs * kernel + bias)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)  # Adds a Layer Normalization layer.
             x = tf.nn.elu(x)
-            x = tf.layers.Dense(40,kernel_initializer=init_xavier)(x)
+            x = tf.layers.Dense(40)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
 
             # Scale output to -action_bound to action_bound
-            mu = tf.layers.Dense(num_actions, kernel_initializer=init_xavier)(x)
-            sigma = tf.layers.Dense(num_actions, kernel_initializer=init_xavier)(x)
+            mu = tf.layers.Dense(num_actions,activation=tf.tanh,
+                                 kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))(x)
+            sigma = tf.layers.Dense(num_actions,kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))(x)
             sigma = tf.nn.softplus(sigma) + 1e-5
-            norm_dist = tf.contrib.distributions.Normal(mu, sigma)
-            action_tf_var = tf.squeeze(norm_dist.sample([1]), axis=0)
-
-            return action_tf_var, norm_dist
+            actor_dist = tf.contrib.distributions.Normal(mu, sigma)
+            actor_actions = tf.squeeze(actor_dist.sample([1]), axis=0)
+            return actor_actions, actor_dist
 
     def critic_net(self, state, action, name, reuse=False, training=True, use_layer_norm=True):
         """Build a critic (value) network that maps (state)  -> V-values.
@@ -88,18 +89,19 @@ class Models:
             fc1_units (int): Number of nodes in first hidden layer - right now 130
             fc2_units (int): Number of nodes in second hidden layer - right now 100
         """
-        num_outputs = 1
         with tf.variable_scope(name, reuse=reuse):
             init_xavier = tf.contrib.layers.xavier_initializer()
-            x = tf.layers.Dense(400,kernel_initializer=init_xavier)(state)
+            if use_layer_norm:
+                x = tf.contrib.layers.layer_norm(state)
+            x = tf.layers.Dense(400)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
-            x = tf.layers.Dense(400,kernel_initializer=init_xavier)(x)
+            x = tf.layers.Dense(400)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
-            v = tf.layers.Dense(num_outputs,kernel_initializer=init_xavier)(x)
+            v = tf.layers.Dense(1,kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))(x)
         return v
 
     def set_model_loss(self, actor_actions,actor_dist, critic,critic_next, rewards, dones, gamma):
@@ -115,15 +117,12 @@ class Models:
             critic_target -> Q_target_next { input: action_next , Output: Q_next }
         """
 
-        # Compute Q targets for current states (y_i)
-        # critic_target - Get predicted next-state actions and Q values from target  (Q_target_next_state)
-        target = rewards + gamma * np.squeeze(critic_next) * (1. - dones)
+        target = rewards + gamma * critic_next * (1. - dones)
         td = target - critic
         actor_loss = -tf.log(actor_dist.prob(actor_actions) + 1e-5) * td
-        #actor_loss -= 1e-5 * actor_dist.entropy()   # Add cross entropy cost to encourage exploration
+        actor_loss -= 1e-1 * actor_dist.entropy()   # Add cross entropy cost to encourage exploration
         tf.losses.add_loss(actor_loss)
-
-        critic_loss = tf.reduce_mean(tf.squared_difference(tf.squeeze(critic), target))
+        critic_loss = tf.losses.huber_loss(target,critic)
 
         return actor_loss, critic_loss
 
@@ -147,7 +146,6 @@ def build_summaries():
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
-
 
 # ===========================
 #   A2C Agent
@@ -194,25 +192,33 @@ class A2C:
         self.count = 0
 
     def step(self, state, reward, done):
-
+        batch_size = 128
         action = self.act(state)
         self.count += 1
         if self.last_state is not None and self.last_action is not None:
             self.total_reward += reward
             self.memory.add(self.last_state, self.last_action, reward, state, done)
-                     # add(self, state, action, reward, next_state, done):
-            experiences = {'states':self.last_state,
+            experiences_actor = {'states':self.last_state,
                            'actions':self.last_action.reshape((1,3)),
                            'rewards':reward.reshape(-1,1),
                            'next_states':state,
                            'dones':np.array(int(done)).reshape(-1,1)}
-            self.learn(experiences)
+            self.learn_actor(experiences_actor)
+        if (len(self.memory) > batch_size):
+            experiences_critic = self.memory.sample(batch_size)
+            self.learn_critic(experiences_critic)
         self.last_state = state
         self.last_action = action
         if done:
             self.episode_num += 1
             eps_reward = self.total_reward
             print('Episode {}: total reward={:7.4f}, count={}'.format(self.episode_num,self.total_reward,self.count))
+            # summary_str = self.sess.run(self.summary_ops, feed_dict={
+            #     self.summary_vars[0]: eps_reward,
+            #     self.summary_vars[1]: eps_reward / float(self.count)  # need to change to average Q
+            # })
+            # self.writer.add_summary(summary_str, self.episode_num)
+            # self.writer.flush()
             self.reset_episode_vars()
             return action, eps_reward
         else:
@@ -225,10 +231,10 @@ class A2C:
 
     def act_without_noise(self, states): # TODO:  fix to take mean instead of sample
         """Returns actions for given state(s) as per current policy."""
-        actions = self.sess.run(self.models.actor_actions, feed_dict={self.models.input_state:states})
+        actions = self.sess.run(tf.squeeze(self.models.actor_dist.sample([1]), axis=0), feed_dict={self.models.input_state:states})
         return np.array(actions).reshape(self.action_shape)
 
-    def learn(self, experiences):
+    def learn_actor(self, experiences):
         """Update policy and value parameters using given batch of experience tuples."""
         states = experiences['states']
         actions = experiences['actions']
@@ -236,12 +242,25 @@ class A2C:
         next_states = experiences['next_states']
         dones = experiences['dones']
 
-        #actor critic update
-        self.sess.run([self.models.actor_opt,self.models.critic_opt],feed_dict={self.models.input_state: states,
-                                                                                self.models.input_action: actions,
-                                                                                self.models.input_state_next: next_states,
-                                                                                self.models.rewards: rewards,
-                                                                                self.models.dones: dones})
+        self.sess.run(self.models.actor_opt,feed_dict={self.models.input_state: states,
+                                                        self.models.input_action: actions,
+                                                        self.models.input_state_next: next_states,
+                                                        self.models.rewards: rewards,
+                                                        self.models.dones: dones})
+
+    def learn_critic(self, experiences):
+        """Update policy and value parameters using given batch of experience tuples."""
+        states = experiences['states']
+        actions = experiences['actions']
+        rewards = experiences['rewards']
+        next_states = experiences['next_states']
+        dones = experiences['dones']
+
+        self.sess.run(self.models.critic_opt,feed_dict={self.models.input_state: states,
+                                                        self.models.input_action: actions,
+                                                        self.models.input_state_next: next_states,
+                                                        self.models.rewards: rewards,
+                                                        self.models.dones: dones})
     def initialize(self):
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
@@ -249,9 +268,10 @@ class A2C:
         """
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
+        # self.summary_ops, self.summary_vars = build_summaries()
         actor_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
         critic_var = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='critic')
-
+        # self.writer = tf.summary.FileWriter('./graphs', self.sess.graph)
 
     def save_model(self):
         self.saver.save(self.sess,self.current_path + '/model_a2c/model.ckpt')

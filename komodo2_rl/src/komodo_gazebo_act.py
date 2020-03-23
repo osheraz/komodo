@@ -17,7 +17,7 @@ env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
 
-model = 'a2c'
+model = 'ddpg'
 if model == 'ddpg':
     agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
                                             actor_lr=0.0005, critic_lr=0.001, use_layer_norm=True)

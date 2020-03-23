@@ -21,16 +21,16 @@ if model == 'ddpg':
                                             actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
     print('DDPG agent configured')
 elif model == 'a2c':
-    agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0002, critic_lr=0.001, use_layer_norm=True)
+    agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
     print('A2C agent configured')
 
-max_episode = 1000
+max_episode = 700
 tot_rewards = []
 print('env reset')
 observation, done = env.reset()
 action = agent.act(observation)
 observation, reward, done = env.step(action)
-noise_sigma = 0.15
+noise_sigma = 0.05
 save_cutoff = 1
 cutoff_count = 0
 save_count = 0
@@ -40,7 +40,7 @@ particle_arr = np.array([1])
 time_arr = np.array([1])
 
 for i in range(max_episode):
-    if i % 100 == 0 and noise_sigma>0.03:
+    if i % 100 == 0 and noise_sigma>0.03 and model == 'ddpg':
         agent.noise = OUNoise(agent.num_actions,sigma=noise_sigma)
         noise_sigma /= 2.0
     step_num = 0

@@ -234,6 +234,7 @@ class KomodoEnvironment:
         self.done = False
         self.episode_start_time = 0.0
         self.max_sim_time = 8.0
+        self.flag_reward = 0
 
         # TODO: Robot information Subscribers
         self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
@@ -418,7 +419,7 @@ class KomodoEnvironment:
         return self.particle
 
 
-    def reward_function(self, pos, particles):
+    def reward_function_dig(self, pos, particles):
         """Update reward for a given State.
         where:
             pos -> current position
@@ -442,7 +443,7 @@ class KomodoEnvironment:
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
 
         arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
-        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
+        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2 + self.bucket_link_z**2)
 
         # Positive Rewards:
         reward_par = 0
@@ -454,7 +455,7 @@ class KomodoEnvironment:
             reward_arm = - self.joint_state[2] -self.joint_state[1]
             reward_tot = reward_par + reward_arm + reward_dist
         else:
-            reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(arm_dist) ** 0.4)
+            reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
             reward_arm = -0.5*self.bucket_link_z  # 0.X
             reward_tot = reward_arm + reward_dist
 
@@ -468,6 +469,53 @@ class KomodoEnvironment:
         print('Reward dist:    {:0.2f}').format(reward_dist)
         print('Reward par:     {:0.2f}').format(reward_par)
         print('Reward arm:     {:0.2f}').format(reward_arm)
+
+
+        return reward_tot
+
+    def reward_function(self, pos, particles):
+        """Update reward for a given State.
+        where:
+            pos -> current position
+            particles -> number of particle in the bucket
+        Params
+        ======
+            reward_pos ->  going along x axis
+            reward_ori ->  straight orientationn
+            reward_particle -> particle in bucket
+        """
+        # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
+        # bucket_joint = self.joint_state[2]
+
+        max_particle = 6
+        bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
+        bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        # bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+
+        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height ])  # [ 0.35,0.25]
+
+        arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
+        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2 + self.bucket_link_z**2)
+
+        # Positive Rewards:
+        # reward_dist = (1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
+        # vel_discount = 1 - math.tanh(abs(self.velocity))**0.4
+        # reward_tot = reward_dist * vel_discount
+        # reward_par = 0
+
+        if self.particle or self.flag_reward:
+            self.flag_reward = 1
+            reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
+            reward_par = 0
+            reward_arm = 0#- self.joint_state[2] -self.joint_state[1]
+            reward_tot = reward_par + reward_arm + reward_dist
+        else:
+            reward_dist = 0.2*(1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
+            reward_arm = 0 #-0.5*self.bucket_link_z  # 0.X
+            reward_tot = reward_arm + reward_dist
+
 
 
         return reward_tot
@@ -524,6 +572,7 @@ class KomodoEnvironment:
         if (curr_time - self.episode_start_time) > self.max_sim_time:
             self.done = True
             self.reset()
+            self.flag_reward = 0
         else:
             self.done = False
 
@@ -531,6 +580,6 @@ class KomodoEnvironment:
         # df_n = pandas.DataFrame((np.round(self.state,2)), columns=keys)
         # print(df_n.to_string(index=False))
 
-        self.reward = np.clip(self.reward, a_min=-20, a_max=20)
+        self.reward = np.clip(self.reward, a_min=-10, a_max=10)
         return self.state, self.reward, self.done
 
