@@ -1,4 +1,4 @@
-# DDPG Implementation on the komodo
+# DDPG & A2C  Implementation on the komodo
 
 # Files ( komodo2 folder)
 
