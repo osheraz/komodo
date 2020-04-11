@@ -52,7 +52,7 @@ python komodo_gazebo_act.py
 
 #### learned agent on real robot
 
-- on quadruped
+
 ```
 roslaunch arm_control arm.launch
 rosrun arm_control inv_control.launch
