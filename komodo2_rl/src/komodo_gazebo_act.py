@@ -58,6 +58,15 @@ for i in range(max_episode):
     else:
         full_observation_arr = np.vstack((full_observation_arr, observation_arr))
 
+keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm",
+        "Diff_Bucket",
+        "ori_x", "ori_y", "ori_z", "ori_q", "ang_x", "ang_y", "ang_z", "lin_acc_x", "lin_acc_y", "lin_acc_z"]
+
+t_listener.force_plot()
+# plt.plot(observation_arr)
+# plt.legend(keys)
+# plt.show()
+
 if save:
     date_time =  str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
     np.save(current_path + '/data/sim/particle_end'+ date_time, particle_arr)

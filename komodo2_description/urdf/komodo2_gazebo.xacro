@@ -130,7 +130,7 @@
                 </gazebo>
                 <gazebo>
                     <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
-                        <updateRate>80.0</updateRate>
+                        <updateRate>10.0</updateRate>
                         <topicName>bucket_torque_sensor</topicName>
                         <jointName>bucket_joint</jointName>
                     </plugin>

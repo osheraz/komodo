@@ -17,27 +17,20 @@
     name="base_link">
     <inertial>
       <origin
-        xyz="0.0030152 0.00057861 0.0749"
+        xyz="0.0 0.0 0.0749"
         rpy="0 0 0" />
       <mass
-        value="500.0058" />
-      <!--mass
-        value="50.0058" /-->
-      <!--inertia
-        ixx="0.80093"
-        ixy="-0.37058"
-        ixz="0.150841"
-        iyy="0.55849"
-        iyz="-0.24895"
-        izz="1.02180" /-->
-    <inertia
-        ixx="80.0093"
-        ixy="-0.37058"
-        ixz="0.150841"
-        iyy="50.5849"
-        iyz="-0.24895"
-        izz="10.2180" />
+        value="40.0058" />
+      <!--inertia 20
+        ixx="0.1927" ixy="0.0" ixz="0.0"
+        iyy="0.5366" iyz="0.0"
+        izz="0.5959"/-->
+      <inertia
+        ixx="0.385" ixy="0.0" ixz="0.0"
+        iyy="1.072" iyz="0.0"
+        izz="1.1919"/>
     </inertial>
+
     <visual>
       <origin
         xyz="0 0 0"
@@ -54,11 +47,12 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0 0.0749"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://komodo2_description/mesh/base.STL" />
+        <!--mesh
+          filename="package://komodo2_description/mesh/base.STL" /-->
+        <box size="0.531 0.275 0.2"/>
       </geometry>
     </collision>
   </link>
@@ -317,9 +311,9 @@
       link="laser_link" />
     <axis
       xyz="0 0 0" />
-    <limit
+    <!--limit
       effort="0.4"
-      velocity="32.0" />
+      velocity="32.0" /-->
   </joint>
   <link
     name="rgb_cam_link" />
@@ -479,12 +473,12 @@
       <mass
         value="1.6502" />
       <inertia
-        ixx="0.5"
+        ixx="0.05"
         ixy="0"
         ixz="0"
-        iyy="0.5"
+        iyy="0.05"
         iyz="0"
-        izz="0.5" />
+        izz="0.05" />
     </inertial>
     <visual>
       <origin
@@ -604,7 +598,7 @@
       link="arm" />
     <axis
       xyz="-1 0 0" />
-    <limit effort="30.0" lower="-0.1" upper="0.32" velocity="0.2"/>
+    <limit effort="100.0" lower="-0.1" upper="0.32" velocity="0.2"/>
     <dynamics damping="40" friction="0.1"/>
   </joint>
 
@@ -621,8 +615,8 @@
       link="bucket" />
     <axis
       xyz="-1 0 0" />
-    <dynamics damping="1" friction="0.0"/>
-    <limit effort="7.0" lower="-0.5" upper="0.9" velocity="0.01"/>
+    <dynamics damping="2" friction="0.9"/>
+    <limit effort="30.0" lower="-0.5" upper="0.9" velocity="0.01"/>
   </joint>
 
 

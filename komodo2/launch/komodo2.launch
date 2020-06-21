@@ -6,7 +6,8 @@
     
     <!--common settings-->
     <arg name="gazebo" default="false" doc="execute komodo2 inside gazebo sim"/>
-    <arg name="world_name" default="worlds/home.world"/>
+    <arg name="world_name" default="$(find komodo2_gazebo)/worlds/objects_on_table.world"/>
+    <!--arg name="world_name" default="objects_on_table.world"/-->
 
     <!--arg name="world_name" default="$(find komodo2_gazebo)/worlds/wow1.world"/--> 
     <!--arg name="world_name" default="$(find komodo2_gazebo)/worlds/home.world"/--> 

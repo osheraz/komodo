@@ -61,11 +61,11 @@ class Models:
             # init_xavier = tf.contrib.layers.xavier_initializer()
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(state)
-            x = tf.layers.Dense(40)(x)  # outputs = activation(inputs * kernel + bias)
+            x = tf.layers.Dense(64)(x)  # outputs = activation(inputs * kernel + bias)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)  # Adds a Layer Normalization layer.
             x = tf.nn.elu(x)
-            x = tf.layers.Dense(40)(x)
+            x = tf.layers.Dense(64)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
@@ -93,11 +93,11 @@ class Models:
             init_xavier = tf.contrib.layers.xavier_initializer()
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(state)
-            x = tf.layers.Dense(400)(x)
+            x = tf.layers.Dense(64)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)
-            x = tf.layers.Dense(400)(x)
+            x = tf.layers.Dense(64)(x)
             if use_layer_norm:
                 x = tf.contrib.layers.layer_norm(x)
             x = tf.nn.elu(x)

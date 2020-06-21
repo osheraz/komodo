@@ -23,20 +23,20 @@ class TorqueListener:
 
     def callback(self,msg):
         torque = msg.wrench.torque.y
-        self.arr.append(torque)
+        self.arr.append(abs(torque))
 
     def force_plot(self):
         self.sub.unregister()
         import matplotlib.pyplot as plt
         date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
-        np.save(self.current_path + '/data/sim/torque_simulation_' + date_time, self.arr)
+        # np.save(self.current_path + '/data/sim/torque_simulation_' + date_time, self.arr)
         plt.subplot(311)
-        w = savgol_filter(self.arr, 501, 2)
+        w = savgol_filter(self.arr, 5, 2)
         plt.plot(w, 'b-', lw=2)
         plt.subplot(312)
-        plt.plot(smooth(self.arr, 3), 'r-', lw=2)
+        plt.plot(smooth(self.arr, 10), 'r-', lw=2)
         plt.subplot(313)
-        plt.plot(smooth(self.arr, 10), 'g-', lw=2)
+        plt.plot(smooth(self.arr, 20), 'g-', lw=2)
         plt.xlabel('time (s)')
         plt.title('Torque over time - Simulation')
         plt.ylabel('Torque (Nm)')

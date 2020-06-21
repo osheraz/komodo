@@ -12,9 +12,12 @@ from gazebo_msgs.srv import SetModelState, SetModelStateRequest, SetModelConfigu
 from gazebo_msgs.srv import GetModelState, GetModelStateRequest, GetLinkState, GetLinkStateRequest
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SpawnModel, SpawnModelRequest, SpawnModelResponse
+from control_msgs.msg import JointControllerState
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from tf import TransformListener
 from sensor_msgs.msg import Imu
-from geometry_msgs.msg import Twist, Vector3Stamped
+from geometry_msgs.msg import Twist, Vector3Stamped, WrenchStamped, PoseStamped, Point, PointStamped
+
 from Spawner import Spawner
 from matplotlib import path
 import math
@@ -105,15 +108,14 @@ class Pile:
         for k in range(h):
             #w = w - 1
             l = l - 1
-            for j in range(-w/2 + 1, w/2):
+            for j in range(-w/2 , w/2): # range(-w/2 + 1, w/2)
                 for i in range(0,l):
                     count +=1
                     name = "particle" + str(count)
-                    pos = [i*self.size*0.25 , j*self.size*0.25 , self.radius*(1+2*k) ]
+                    # pos = [i*self.size*0.25 , j*self.size*0.25 , self.radius*(1+2*k) ]
+                    pos = [(2*i+1)*self.radius , (2*j+1)*self.radius, self.radius*(1+2*k) ]
                     rot = [0.0, 0.0, 0.0]
-                    # req = self.spawner.create_cube_request(name, pos[0], pos[1], pos[2],
-                    #                                              rot[0], rot[1], rot[2],
-                    #                                              self.size, self.size, self.size)
+
                     req = self.spawner.create_sphere_request(name, pos[0], pos[1], pos[2],
                                                                  rot[0], rot[1], rot[2],
                                                                  self.radius)
@@ -127,18 +129,22 @@ class Pile:
         w = int(self.width/self.size)
         h = int(self.height/self.size)
         self.model_state_proxy(self.pile_box_req)
+        eps = 0.001
 
         for k in range(h):
             #w = w - 1
             l = l - 1
-            for j in range(-w/2 + 1, w/2):
+            for j in range(-w/2, w/2):
                 for i in range(0,l):
                     count +=1
                     self.pile_state_req = SetModelStateRequest()
                     self.pile_state_req.model_state = ModelState()
                     self.pile_state_req.model_state.model_name = 'particle'+str(count)
-                    self.pile_state_req.model_state.pose.position.x = i*self.size*0.25
-                    self.pile_state_req.model_state.pose.position.y = j*self.size*0.25
+                    # self.pile_state_req.model_state.pose.position.x = i*self.size*0.25
+                    # self.pile_state_req.model_state.pose.position.y = j*self.size*0.25
+                    # self.pile_state_req.model_state.pose.position.z = self.radius*(1+2*k)
+                    self.pile_state_req.model_state.pose.position.x = (2*i+1)*(self.radius+eps)
+                    self.pile_state_req.model_state.pose.position.y = (self.radius+ eps)*(1+2*j)
                     self.pile_state_req.model_state.pose.position.z = self.radius*(1+2*k)
                     self.pile_state_req.model_state.pose.orientation.x = 0.0
                     self.pile_state_req.model_state.pose.orientation.y = 0.0
@@ -214,13 +220,13 @@ class KomodoEnvironment:
         self.last_ori = np.zeros(4)
         self.max_limit = np.array([0.1, 0.32, 0.9])
         self.min_limit = np.array([-0.1, -0.1, -0.5])
-        self.orientation = np.zeros(4)
+        self.orientation = np.zeros(3)
         self.angular_vel = np.zeros(3)
         self.linear_acc = np.zeros(3)
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 +6,)
+        self.state_shape = (self.nb_actions * 2 + 3 + 3 + 4 + 3 + 1 + 3,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -232,19 +238,39 @@ class KomodoEnvironment:
         self.state = np.zeros(self.state_shape)
         self.reward = 0.0
         self.done = False
+        self.reward_done = False
         self.episode_start_time = 0.0
         self.max_sim_time = 8.0
-        self.flag_reward = 0
 
         # TODO: Robot information Subscribers
         self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
         self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
         self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
+        # self.torque_subscriber = rospy.Subscriber('/bucket_torque_sensor',WrenchStamped,self.torque_subscriber_callback)
+        # self.controller_state_sub = rospy.Subscriber('/bucket_position_controller/state',JointControllerState,self.controller_subscriber_callback)
+        self.reward_publisher = rospy.Publisher('/reward', Float64, queue_size=10)
+
+        # TODO: Torque shit that doesnt work
+        # self.torque_publisher = rospy.Publisher('/t1',Float64,queue_size=10)
+        # self.controller_publisher = rospy.Publisher('/t2',Float64,queue_size=10)
+        #
+        # self.torque_sum = 0
+        # self.torque_y = 0
+        # self.smooth_command = 0
+        # self.ft_out = WrenchStamped()
+        # self.ft_out.header.stamp = rospy.Time.now()
+        # self.ft_out.wrench.force.x = 0
+        # self.ft_out.wrench.force.y = 0
+        # self.ft_out.wrench.force.z = 0
+        # self.ft_out.wrench.torque.x = 0
+        # self.ft_out.wrench.torque.y = 0
+        # self.ft_out.wrench.torque.z = 0
 
         # TODO: Gazebo stuff
         self.pause_proxy = rospy.ServiceProxy('/gazebo/pause_physics',Empty)
         self.unpause_proxy = rospy.ServiceProxy('/gazebo/unpause_physics',Empty)
         self.reset_world = rospy.ServiceProxy('/gazebo/reset_world',Empty)
+        self.tfl = TransformListener()
 
         self.model_config_proxy = rospy.ServiceProxy('/gazebo/set_model_configuration',SetModelConfiguration)
         self.model_config_req = SetModelConfigurationRequest()
@@ -282,14 +308,56 @@ class KomodoEnvironment:
         self.get_link_state_req.link_name = 'bucket'
         self.get_link_state_req.reference_frame = 'world'
 
-    def normalize_joint_state(self,joint_pos):
-        joint_coef = 3.0 # 3.0
-        return joint_pos * joint_coef
 
     def velocity_subscriber_callback(self, data):
         vel = data.twist.twist.linear.x
         self.joint_state[0] = vel # fixed velocity
         self.velocity = vel
+
+    def calc_torque(self ):
+        mass = 0.3
+
+        px_arr = np.zeros(self.pile.num_particle)
+        py_arr = np.zeros(self.pile.num_particle)
+        pz_arr = np.zeros(self.pile.num_particle)
+
+        for i in range(1, self.pile.num_particle + 1):
+            if self.particle_index[i] == 1:
+                get_particle_state_req = GetModelStateRequest()
+                get_particle_state_req.model_name = 'particle' + str(i)
+                get_particle_state_req.relative_entity_name = 'bucket'  # 'world'
+                particle_state = self.get_model_state_proxy(get_particle_state_req)
+                x = particle_state.pose.position.x
+                y = particle_state.pose.position.y
+                z = particle_state.pose.position.z
+                orientation = particle_state.pose.orientation
+                (roll, pitch, theta) = euler_from_quaternion(
+                    [orientation.x, orientation.y, orientation.z, orientation.w])
+                px_arr[i - 1] = x
+                py_arr[i - 1] = y
+                pz_arr[i - 1] = z
+
+                self.torque_sum += mass * 9.80665 * abs(x) * math.sin(roll)
+
+    def controller_subscriber_callback(self, con_in):
+        e = 0.99
+        control_command = con_in.command
+        self.smooth_command = con_in.command *( 1-e ) + e * self.smooth_command
+        sensor_torque = self.torque_y
+        self.controller_publisher.publish(self.smooth_command)
+
+    def torque_subscriber_callback(self, ft_in):
+        e = 0.9
+        self.ft_out.header.stamp = rospy.Time.now()
+        self.ft_out.header.frame_id = ft_in.header.frame_id
+        self.ft_out.wrench.force.x = ft_in.wrench.force.x * (1 - e) + self.ft_out.wrench.force.x * e # - self.x_force_offset + self.adjustment.wrench.force.x
+        self.ft_out.wrench.force.y = ft_in.wrench.force.y * (1 - e) + self.ft_out.wrench.force.y * e  #- self.y_force_offset + self.adjustment.wrench.force.y
+        self.ft_out.wrench.force.z = ft_in.wrench.force.z * (1 - e) + self.ft_out.wrench.force.z * e  #- self.z_force_offset + self.adjustment.wrench.force.z
+        self.ft_out.wrench.torque.x = ft_in.wrench.torque.x * (1 - e) + self.ft_out.wrench.torque.x * e#- self.x_torque_offset  - self.adjustment.wrench.torque.x
+        self.ft_out.wrench.torque.y = ft_in.wrench.torque.y * (1 - e) + self.ft_out.wrench.torque.y * e #- self.y_torque_offset - self.adjustment.wrench.torque.y
+        self.torque_y = ft_in.wrench.torque.y
+        self.ft_out.wrench.torque.z = ft_in.wrench.torque.z * (1 - e) + self.ft_out.wrench.torque.z * e #- self.z_torque_offset - self.adjustment.wrench.torque.z
+        self.torque_publisher.publish((-self.ft_out.wrench.torque.y))
 
     def joint_state_subscriber_callback(self,joint_state):
         self.joint_state[1]= joint_state.position[0] # arm
@@ -297,7 +365,9 @@ class KomodoEnvironment:
         self.wheel_vel = joint_state.velocity[2]
 
     def imu_subscriber_callback(self,imu):
-        self.orientation = np.array([imu.orientation.x,imu.orientation.y,imu.orientation.z,imu.orientation.w])
+
+        self.orientation = np.array(euler_from_quaternion([imu.orientation.x, imu.orientation.y,imu.orientation.z,imu.orientation.w]))
+        # self.orientation = np.array([imu.orientation.x, imu.orientation.y,imu.orientation.z,imu.orientation.w])
         self.angular_vel = np.array([imu.angular_velocity.x,imu.angular_velocity.y,imu.angular_velocity.z])
         self.linear_acc = np.array([imu.linear_acceleration.x,imu.linear_acceleration.y,imu.linear_acceleration.z])
 
@@ -352,23 +422,35 @@ class KomodoEnvironment:
         model_state = self.get_model_state_proxy(self.get_model_state_req)
         pos = np.array([model_state.pose.position.x, model_state.pose.position.y, model_state.pose.position.z])
         done = False
+        self.reward_done = False
 
         rospy.wait_for_service('/gazebo/get_link_state')
 
+        # self.ft_out.header.stamp = rospy.Time.now()
+        # self.ft_out.wrench.force.x = 0
+        # self.ft_out.wrench.force.y = 0
+        # self.ft_out.wrench.force.z = 0
+        # self.ft_out.wrench.torque.x = 0
+        # self.ft_out.wrench.torque.y = 0
+        # self.ft_out.wrench.torque.z = 0
+        # self.smooth_command = 0
+
         self.last_joint = self.joint_state
         self.last_pos = pos
-
-        diff_joint = np.zeros(self.nb_actions)
-        normed_js = self.normalize_joint_state(self.joint_state)
-
-        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
-
-        model_data = np.array([pos[0]])
-
-        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1, -1)
-
         self.episode_start_time = rospy.get_time()
         self.last_action = np.zeros(self.nb_actions)
+
+        diff_joint = np.zeros(self.nb_actions)
+        normed_js = self.joint_state
+
+        arm_data = np.array([self.x_tip, self.z_tip, self.bucket_link_x, self.bucket_link_z])
+
+        model_data = np.array([pos[0]]) # distance
+
+        self.state = np.concatenate((arm_data, model_data, self.last_action, normed_js, diff_joint,
+                                     self.orientation, self.angular_vel, self.linear_acc)).reshape(1, -1)
+
+
         return self.state, done
 
     def check_particle_in_bucket(self):
@@ -408,7 +490,9 @@ class KomodoEnvironment:
         # zq = np.delete(zq, index)
 
         particle_in_bucket = self.pile.in_bucket_2d(xq, zq, xv, zv)
+
         self.particle = (particle_in_bucket == 1).sum()
+        self.particle_index = np.where(np.array(particle_in_bucket) == 1 )
 
         rospy.logdebug('BUCKET: x: '+str(round(x, 2)) +' y: '+str(round(y, 3))+' z: '+str(round(z, 2))+ ' x_tip: '+str(round(self.x_tip, 2)))
         rospy.logdebug('BUCKET: roll: '+str(round(roll,2)) +' pitch: '+str(round(pitch, 3))+' theta: '+str(round(theta, 2)))
@@ -439,7 +523,6 @@ class KomodoEnvironment:
 
         bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
         # bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
-
         min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
 
         arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
@@ -470,6 +553,62 @@ class KomodoEnvironment:
         print('Reward par:     {:0.2f}').format(reward_par)
         print('Reward arm:     {:0.2f}').format(reward_arm)
 
+
+        return reward_tot
+
+    def reward_V2(self, pos, particles):
+        """Update reward for a given State.
+        where:
+            pos -> current position
+            particles -> number of particle in the bucket
+        Params
+        ======
+            reward_pos ->  going along x axis
+            reward_ori ->  straight orientationn
+            reward_particle -> particle in bucket
+        """
+        # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
+        # bucket_joint = self.joint_state[2]
+
+        max_particle = 6
+        bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
+        b_tip_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        b_joint_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+
+        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height  + 0.1])  # [ 0.35,0.25]
+
+        tip_to_target_dist = math.sqrt((b_tip_pos[0] - min_end_pos[0])**2 + (b_tip_pos[1] - min_end_pos[1])**2)
+        tip_to_pile_dist = math.sqrt((b_tip_pos[0] - self.pile.sand_box_x) ** 2 + b_tip_pos[1]**2)
+
+        # Positive Rewards:
+        reward_par = 0
+        if self.particle:
+            # w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
+            # w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
+            reward_dist = 2 * (1 - math.tanh(tip_to_target_dist) ** 0.4)
+            reward_par = 0 # 0.2 * w
+            reward_arm =  -0.5*(self.joint_state[2] + self.joint_state[1])
+            reward_tot = reward_par + reward_arm + reward_dist
+        else:
+            reward_dist = (1 - math.tanh(tip_to_pile_dist) ** 0.4)
+            reward_arm = 0.5*( self.joint_state[1])   -0.5*self.bucket_link_z  # 0.X
+            reward_tot = reward_arm + reward_dist
+
+        eps = 0.05
+
+        if tip_to_target_dist < eps:
+            reward_tot += self.particle
+            # self.reward_done = True
+
+        #  Negative Rewards:
+        if pos[2] > -0.0004 or pos[0] > 1.1: #
+            reward_tot = -1
+            self.reward_done = True
+        if (self.x_tip < 0):
+            reward_tot = -1
+            self.reward_done = True
 
         return reward_tot
 
@@ -505,8 +644,7 @@ class KomodoEnvironment:
         # reward_tot = reward_dist * vel_discount
         # reward_par = 0
 
-        if self.particle or self.flag_reward:
-            self.flag_reward = 1
+        if self.particle:
             reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
             reward_par = 0
             reward_arm = 0#- self.joint_state[2] -self.joint_state[1]
@@ -526,7 +664,9 @@ class KomodoEnvironment:
 
         # print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
         #                                                                        self.joint_state[2])
-        keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
+        keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "cmd_vel", "cmd_list", "cmd_tilt",
+                "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket",
+                "roll", "pitch", "yaw", "ang_x", "ang_y", "ang_z", "lin_acc_x", "lin_acc_y", "lin_acc_z"]
         df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
         print(df.to_string(index=False))
 
@@ -548,38 +688,34 @@ class KomodoEnvironment:
 
         p_in_bucket = self.check_particle_in_bucket()
 
-        self.reward = self.reward_function(pos, p_in_bucket)
+        self.reward = self.reward_V2(pos, p_in_bucket)
 
         # print('Reward:    {:0.2f}').format(self.reward)
 
-        normed_js = self.normalize_joint_state(self.joint_state) # TODO: Check without diff + Pos Z
+        diff_joint = (self.joint_state - self.last_joint)
 
-        diff_joint = (normed_js - self.last_joint)
-
-        arm_data = np.array([self.particle, self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
+        arm_data = np.array([self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
 
         model_data = np.array([pos[0]])
 
-        self.state = np.concatenate((arm_data, model_data, normed_js, diff_joint)).reshape(1,-1)
+        self.state = np.concatenate((arm_data, model_data, self.last_action, self.joint_state, diff_joint,
+                                     self.orientation, self.angular_vel, self.linear_acc)).reshape(1, -1)
 
-        self.last_joint = normed_js
+        self.last_joint = self.joint_state
         self.last_pos = pos
         self.last_action = action
 
         curr_time = rospy.get_time()
         # print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
+        self.reward_publisher.publish(self.reward)
 
-        if (curr_time - self.episode_start_time) > self.max_sim_time:
+        if (curr_time - self.episode_start_time) > self.max_sim_time or self.reward_done:
             self.done = True
             self.reset()
-            self.flag_reward = 0
         else:
             self.done = False
 
-        # print('next state:  {}').format(np.round(self.state,2))
-        # df_n = pandas.DataFrame((np.round(self.state,2)), columns=keys)
-        # print(df_n.to_string(index=False))
-
         self.reward = np.clip(self.reward, a_min=-10, a_max=10)
+
         return self.state, self.reward, self.done
 

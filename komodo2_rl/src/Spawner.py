@@ -225,14 +225,14 @@ sdf_unit_sphere = """<?xml version='1.0'?>
     <link name='link'>
       <pose frame=''>0 0 0 0 -0 0</pose>
       <inertial>
-        <mass>0.05</mass>
+        <mass>0.1</mass>
         <inertia>
-          <ixx>0.001</ixx>
+          <ixx>0.0000490147</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.001</iyy>
+          <iyy>0.000049147</iyy>
           <iyz>0</iyz>
-          <izz>0.001</izz>
+          <izz>0.000049147</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>

@@ -15,7 +15,8 @@ env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
 
-model = 'a2c'
+model = 'ddpg'
+
 if model == 'ddpg':
     agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
                                             actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
@@ -24,13 +25,13 @@ elif model == 'a2c':
     agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
     print('A2C agent configured')
 
-max_episode = 700
+max_episode = 1500
 tot_rewards = []
 print('env reset')
 observation, done = env.reset()
 action = agent.act(observation)
 observation, reward, done = env.step(action)
-noise_sigma = 0.05
+noise_sigma = 0.15
 save_cutoff = 1
 cutoff_count = 0
 save_count = 0
@@ -52,8 +53,7 @@ for i in range(max_episode):
         print('reward:',round(reward,3),'episode:', i, 'step:',step_num,'highest reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
         print('\n-----------------------------------------------------------------------------------------------------\n')
 
-        print('X_tip: ', round(observation[0, 5] - observation[0, 1] + HALF_KOMODO , 3),' Z tip: ', round(observation[0, 2], 3))
-        if observation[0,6] < 0 and observation[0,2] > 0.2 and flag:
+        if reward > 3 and flag:
             particle = observation[0,0]  # amount of particle at the end
             timer =  step_num  # time elapsed from episode start
             print('Particle:', round(observation[0,0], 3),  'Step:', step_num)
