@@ -47,6 +47,7 @@ class Actions:
         self.des_to_pub.data = self.normalize_arm_cmd(arm_cmd, bucket_cmd)
         self.arm_bucket_pub.publish(self.des_to_pub)
         self.vel_pub.publish(self.vel_msg)
+        # rospy.loginfo([self.des_to_pub.data , self.vel_msg.linear.x])
 
     def reset_move(self, cmd):
         self.vel_msg.linear.x = cmd[0]
@@ -58,8 +59,8 @@ class Actions:
 
     def normalize_arm_cmd(self,arm_cmd , bucket_cmd):
         des_cmd = np.array([arm_cmd, arm_cmd, bucket_cmd, bucket_cmd])
-        des_cmd[:2] = maprange([-1.0, 1.],[300, 780],des_cmd[:2])  # maprange([0.32, -0.2],[380, 780],des_cmd[:2])
-        des_cmd[2:] = maprange([-1.0, 1.0], [10, 450],des_cmd[2:])  # maprange([-0.5, 0.548], [20, 450],des_cmd[2:])
+        des_cmd[:2] = maprange([0.32, -0.1],[300, 780],des_cmd[:2])  # maprange([0.32, -0.2],[380, 780],des_cmd[:2])
+        des_cmd[2:] = maprange([-0.5, 0.9], [10, 450],des_cmd[2:])  # maprange([-0.5, 0.548], [20, 450],des_cmd[2:])
         return des_cmd
 
 class torque_listener:
@@ -103,11 +104,12 @@ class Scoop_controller:
     def __init__(self):
 
         # TODO: Robot information
+        self.flag = True
         self.bucket_init_pos = 0
         self.arm_init_pos = 0
         self.vel_init = 0
         self.HALF_KOMODO = 0.53 / 2
-        self.particle = 0
+        self.particle = np.zeros(1)
         self.x_tip = 0
         self.z_tip = 0
         self.bucket_link_x = 0
@@ -115,17 +117,16 @@ class Scoop_controller:
         self.velocity = 0
         self.wheel_vel = 0
         self.position_from_pile = np.array([0])
-        self.joint_name_lst = ['arm_joint', 'bucket_joint', 'front_left_wheel_joint', 'front_right_wheel_joint',
-                               'rear_left_wheel_joint', 'rear_right_wheel_joint']
         self.last_pos = np.zeros(3)
         self.last_ori = np.zeros(4)
-        self.max_limit = np.array([0.1, 0.32, 0.9]) # np.array([0.1, 0.32, 0.548])
-        self.min_limit = np.array([-0.1, -0.1, -0.5]) # np.array([-0.1, -0.2, -0.5])
+        self.max_limit = np.array([0.2, 0.32, 0.9]) # np.array([0.1, 0.32, 0.548])
+        self.min_limit = np.array([-0.2, -0.1, -0.5]) # np.array([-0.1, -0.2, -0.5])
 
         self.arm_data = np.array([0, 0, 0, 0], dtype=np.float)
         self.fb = np.zeros((motor_con,), dtype=np.int32)
         self.old_fb = np.zeros((motor_con,), dtype=np.int32)
         self.velocity_motor = np.zeros((motor_con,), dtype=np.int32)
+
 
 
         # TODO: RL information
@@ -140,6 +141,8 @@ class Scoop_controller:
         self.joint_state = np.zeros(self.nb_actions)
         self.joint_pos = self.starting_pos
         self.state = np.zeros(self.state_shape)
+        self.last_joint = self.joint_state
+        self.observation_arr = self.state
 
 
         # TODO: Robot information Subscribers
@@ -175,13 +178,13 @@ class Scoop_controller:
         self.position_from_pile = np.array([msg.ranges[270]])
 
     def update_arm_data(self,data):
-        self.arm_data = np.array(data.data) / 1000
+        self.arm_data = np.array(data.data, dtype=np.float) / 1000
 
     def update_force(self, data):
         min_w = 0
         max_w = 10
         force = abs(data.data)
-        self.particle = np.array(force)
+        self.particle = np.array([force], dtype=np.float)
 
     def normalize_joint_state(self,joint_pos):
         joint_coef = 1.0
@@ -219,41 +222,41 @@ class Scoop_controller:
             Left stick - right left - data.axes[0]
             Left stick - up down - data.axes[1]
         """
-        # print("joy_update: {:.2f}".format(data.axes[1]))
-        action = np.array([-data.axes[0],data.axes[7],data.axes[7]]) # range -1 to 1
-        rospy.loginfo(action)
-        # rospy.loginfo(data)
-        action = action * self.action_range
-        rospy.loginfo(np.round(action, 2))
+        action = np.array([data.axes[7],data.axes[1],data.axes[4]]) # range -1 to 1
+        action[0] = action[0] #* self.action_range[0] * 2
+        action[1] = -action[1] * self.action_range[1] * 0.002
+        action[2] = -action[2] * self.action_range[2] * 0.001
+
+        # rospy.loginfo(np.round(action, 2))
 
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
-        rospy.loginfo(np.round(self.joint_pos, 2))
+
+        if abs(action[0]) < 0.001:
+            self.joint_pos[0] *= 0
 
         self.actions.move(self.joint_pos)
 
-        rospy.loginfo(np.round(self.joint_state, 2))
-
-        # rospy.sleep(5.0/60.0)
-
-        #normed_js = self.normalize_joint_state(self.joint_pos)
         normed_js = self.normalize_joint_state(self.joint_state)
 
         diff_joint = normed_js - self.last_joint
 
-        # self.state = np.concatenate((self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
         self.state = np.concatenate((self.particle, self.arm_data, self.position_from_pile, normed_js, diff_joint)).reshape(1, -1)
+
+        if True:
+            self.observation_arr = np.vstack((self.observation_arr, self.state))
 
         self.last_joint = normed_js
         self.last_action = action
-        # print('state:  ',np.round(self.state,2))
+
         keys = ["Particle", "X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket"]
         df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
-        # print(df.to_string(index=False))
+        print(df.to_string(index=False))
 
-        rospy.loginfo("----------------------")
-        # if data.buttons[2] == 1:
-        #     print("Reset Simulation")
-        #     self.reset()
+        if data.buttons[2] == 1 and self.flag:
+            self.flag = False
+            np.save( '/home/osher/catkin_ws/src/komodo/komodo2_rl/src/data/obs' , self.observation_arr)
+            print("Reset Simulation")
+            self.reset()
 
         return self.state
 
@@ -271,7 +274,7 @@ if __name__ == '__main__':
         while not rospy.is_shutdown():
             rate.sleep()
 
-        rospy.spin()
+        # rospy.spin()
 
     except rospy.ROSInterruptException:
         pass
