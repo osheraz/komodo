@@ -1,5 +1,7 @@
 # DDPG & A2C  Implementation on the komodo
 
+![komodo](https://i.imgur.com/ZCKDDNQ.png)
+
 # Files ( komodo2 folder)
 
 
@@ -51,8 +53,6 @@ python komodo_gazebo_act.py
 ```
 
 #### learned agent on real robot
-
-
 ```
 roslaunch arm_control arm.launch
 rosrun arm_control inv_control.launch
@@ -60,38 +60,4 @@ roslaunch komodo2 komodo2.launch lidar:=true
 rqt
 python komodo_act.py
 ```
-
-# Tips
-#### always
-```
-source ~/catkin_ws/devel/setup.bash
-```
-#### ROS core
-roscore
-
-#### ROS via network (local LAN)
-- MASTER Setting -> get master_ip_addr via ifconfig (master runs roscore)
-```
-export ROS_MASTER_URI=http://master_ip_addr:11311
-export ROS_IP=master_ip_addr
-export ROS_MASTER_URI=http://192.168.0.5:11311
-```
-
-- SECOND Setting (from other computer)
-```
-ssh second_ip_addr -p(port_num)
-export ROS_MASTER_URI=http://master_ip_addr:11311
-export ROS_IP=second_ip_addr
-```
-
-- exiting ssh
-```
-exit
-```
-
-#### xacro to URDF file
-```
-rosrun xacro xacro --inorder model.xacro > model.urdf
-```
-
 
