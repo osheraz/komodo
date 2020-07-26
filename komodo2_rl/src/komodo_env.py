@@ -226,7 +226,7 @@ class KomodoEnvironment:
 
         # TODO: RL information
         self.nb_actions = 3  # base , arm , bucket
-        self.state_shape = (self.nb_actions * 2 + 3 + 3 + 4 + 3 + 1 + 3,)
+        self.state_shape = (self.nb_actions * 2 + 5 ,)
         self.action_shape = (self.nb_actions,)
         self.actions = Actions()
         self.starting_pos = np.array([self.vel_init,self.arm_init_pos, self.bucket_init_pos])
@@ -447,8 +447,7 @@ class KomodoEnvironment:
 
         model_data = np.array([pos[0]]) # distance
 
-        self.state = np.concatenate((arm_data, model_data, self.last_action, normed_js, diff_joint,
-                                     self.orientation, self.angular_vel, self.linear_acc)).reshape(1, -1)
+        self.state = np.concatenate((arm_data, model_data, self.joint_state, diff_joint )).reshape(1, -1)
 
 
         return self.state, done
@@ -523,7 +522,7 @@ class KomodoEnvironment:
 
         bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
         # bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
-        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
+        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
 
         arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
         loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2 + self.bucket_link_z**2)
@@ -577,7 +576,7 @@ class KomodoEnvironment:
         b_tip_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
         b_joint_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
 
-        min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height  + 0.1])  # [ 0.35,0.25]
+        min_end_pos = np.array([self.pile.sand_box_x + 0.1 , self.pile.sand_box_height  + 0.2])  # [ 0.35,0.25]
 
         tip_to_target_dist = math.sqrt((b_tip_pos[0] - min_end_pos[0])**2 + (b_tip_pos[1] - min_end_pos[1])**2)
         tip_to_pile_dist = math.sqrt((b_tip_pos[0] - self.pile.sand_box_x) ** 2 + b_tip_pos[1]**2)
@@ -599,7 +598,7 @@ class KomodoEnvironment:
         eps = 0.05
 
         if tip_to_target_dist < eps:
-            reward_tot += self.particle
+            reward_tot += 0.1*self.particle
             # self.reward_done = True
 
         #  Negative Rewards:
@@ -658,15 +657,17 @@ class KomodoEnvironment:
 
         return reward_tot
 
+
+    def normalize_joint_state(self,joint_pos):
+        return joint_pos * 1
+
     def step(self, action):
 
         np.set_printoptions(precision=1)
 
         # print('Velocity: {:0.2f}   Arm: {:0.2f}   Bucket: {:0.2f}').format(self.joint_state[0],self.joint_state[1],
         #                                                                        self.joint_state[2])
-        keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "cmd_vel", "cmd_list", "cmd_tilt",
-                "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket",
-                "roll", "pitch", "yaw", "ang_x", "ang_y", "ang_z", "lin_acc_x", "lin_acc_y", "lin_acc_z"]
+        keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance","Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm", "Diff_Bucket", "lin_acc_x"]
         df = pandas.DataFrame((np.round(self.state,2)), columns=keys)
         print(df.to_string(index=False))
 
@@ -679,7 +680,6 @@ class KomodoEnvironment:
         action = action * self.action_range
         self.joint_pos = np.clip(self.joint_pos + action, a_min=self.min_limit, a_max=self.max_limit)
         self.actions.move(self.joint_pos)
-        # print('joint pos:', self.joint_pos)
 
         rospy.sleep(15.0/60.0)
         rospy.wait_for_service('/gazebo/get_model_state')
@@ -690,23 +690,21 @@ class KomodoEnvironment:
 
         self.reward = self.reward_V2(pos, p_in_bucket)
 
-        # print('Reward:    {:0.2f}').format(self.reward)
-
-        diff_joint = (self.joint_state - self.last_joint)
+        curr_joint = self.normalize_joint_state(self.joint_state)
+        diff_joint = (curr_joint - self.last_joint)
 
         arm_data = np.array([self.x_tip, self.z_tip, self.bucket_link_x , self.bucket_link_z])
 
         model_data = np.array([pos[0]])
 
-        self.state = np.concatenate((arm_data, model_data, self.last_action, self.joint_state, diff_joint,
-                                     self.orientation, self.angular_vel, self.linear_acc)).reshape(1, -1)
+        self.state = np.concatenate((arm_data, model_data, self.joint_state, diff_joint )).reshape(1, -1)
 
-        self.last_joint = self.joint_state
+        self.last_joint = curr_joint
         self.last_pos = pos
         self.last_action = action
 
         curr_time = rospy.get_time()
-        # print('Time:    {:0.2f}').format(curr_time - self.episode_start_time)
+
         self.reward_publisher.publish(self.reward)
 
         if (curr_time - self.episode_start_time) > self.max_sim_time or self.reward_done:

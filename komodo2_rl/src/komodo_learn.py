@@ -25,7 +25,7 @@ elif model == 'a2c':
     agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
     print('A2C agent configured')
 
-max_episode = 1500
+max_episode = 2500
 tot_rewards = []
 print('env reset')
 observation, done = env.reset()
@@ -53,7 +53,7 @@ for i in range(max_episode):
         print('reward:',round(reward,3),'episode:', i, 'step:',step_num,'highest reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
         print('\n-----------------------------------------------------------------------------------------------------\n')
 
-        if reward > 3 and flag:
+        if reward > 2 and flag:
             particle = observation[0,0]  # amount of particle at the end
             timer =  step_num  # time elapsed from episode start
             print('Particle:', round(observation[0,0], 3),  'Step:', step_num)

@@ -28,7 +28,7 @@ elif model == 'a2c':
     print('A2C agent configured')
     agent.load_model(agent.current_path + '/model_a2c/model.ckpt')
 
-max_episode = 10
+max_episode = 50
 particle_arr = np.array([1])
 time_arr = np.array([1])
 
@@ -62,7 +62,7 @@ keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm",
         "Diff_Bucket",
         "ori_x", "ori_y", "ori_z", "ori_q", "ang_x", "ang_y", "ang_z", "lin_acc_x", "lin_acc_y", "lin_acc_z"]
 
-t_listener.force_plot()
+# t_listener.force_plot()
 # plt.plot(observation_arr)
 # plt.legend(keys)
 # plt.show()
