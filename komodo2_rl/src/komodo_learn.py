@@ -1,7 +1,7 @@
 from __future__ import print_function
-from komodo_env import KomodoEnvironment
-from ddpg import OUNoise, DDPG
-from a2c import A2C
+from environments.komodo_env import KomodoEnvironment
+from agents.ddpg import OUNoise, DDPG
+from agents.a2c import A2C
 
 import numpy as np
 from datetime import datetime
@@ -15,7 +15,7 @@ env = KomodoEnvironment()
 state_shape = env.state_shape
 action_shape = env.action_shape
 
-model = 'ddpg'
+model = 'a2c'
 
 if model == 'ddpg':
     agent = DDPG(state_shape,action_shape,batch_size=128,gamma=0.995,tau=0.001,
@@ -25,7 +25,7 @@ elif model == 'a2c':
     agent = A2C(state_shape,action_shape,gamma=0.995,actor_lr=0.0001, critic_lr=0.001, use_layer_norm=True)
     print('A2C agent configured')
 
-max_episode = 2500
+max_episode = 1000
 tot_rewards = []
 print('env reset')
 observation, done = env.reset()
@@ -53,7 +53,7 @@ for i in range(max_episode):
         print('reward:',round(reward,3),'episode:', i, 'step:',step_num,'highest reward:',round(curr_highest_eps_reward, 3), 'saved:',save_count, 'cutoff count:', cutoff_count)
         print('\n-----------------------------------------------------------------------------------------------------\n')
 
-        if reward > 2 and flag:
+        if env.reach_target and flag:
             particle = observation[0,0]  # amount of particle at the end
             timer =  step_num  # time elapsed from episode start
             print('Particle:', round(observation[0,0], 3),  'Step:', step_num)
@@ -80,8 +80,8 @@ for i in range(max_episode):
 
 if save:
     date_time = str(datetime.now().strftime('%d_%m_%Y_%H_%M'))
-    np.save(current_path + '/data/sim/eps_rewards' + model + date_time, tot_rewards)
-    np.save(current_path + '/data/sim/particle_end' + model + date_time, particle_arr)
-    np.save(current_path + '/data/sim/time_end' + model + date_time, time_arr)
+    np.save(current_path + '/data/sim/eps_rewards_learn_' + model + date_time, tot_rewards)
+    np.save(current_path + '/data/sim/particle_end_learn_' + model + date_time, particle_arr)
+    np.save(current_path + '/data/sim/time_end_learn_' + model + date_time, time_arr)
 plt.plot(tot_rewards)
 plt.show()

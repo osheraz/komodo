@@ -1,2 +1,0 @@
-model_checkpoint_path: "/home/osher/catkin_ws/src/komodo/komodo2_rl/src/model_a2c/model.ckpt"
-all_model_checkpoint_paths: "/home/osher/catkin_ws/src/komodo/komodo2_rl/src/model_a2c/model.ckpt"

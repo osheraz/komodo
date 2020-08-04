@@ -1,7 +1,7 @@
 from __future__ import print_function
-from komodo_env import KomodoEnvironment
-from ddpg import DDPG
-from a2c import A2C
+from environments.komodo_env import KomodoEnvironment
+from agents.ddpg import DDPG
+from agents.a2c import A2C
 
 from torque_listener import TorqueListener
 import numpy as np
@@ -28,7 +28,7 @@ elif model == 'a2c':
     print('A2C agent configured')
     agent.load_model(agent.current_path + '/model_a2c/model.ckpt')
 
-max_episode = 50
+max_episode = 100
 particle_arr = np.array([1])
 time_arr = np.array([1])
 
@@ -49,7 +49,7 @@ for i in range(max_episode):
         action_arr= np.vstack((action_arr, action))
         print('Reward:', round(reward,3), 'Episode:', i, 'Step:', step_num)
         print('------------------------------------------------------------------------------------------')
-        if observation[0,6] < 0 and observation[0,4] > 0.08*3 and flag:
+        if observation[0,5] < 0 and observation[0,3] > 0.1 and flag:
             particle_arr = np.vstack((particle_arr, observation[0,0]))  # amount of particle at the end
             time_arr = np.vstack((time_arr, step_num))  # time elapsed from episode start
             flag = 0
@@ -58,9 +58,7 @@ for i in range(max_episode):
     else:
         full_observation_arr = np.vstack((full_observation_arr, observation_arr))
 
-keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm",
-        "Diff_Bucket",
-        "ori_x", "ori_y", "ori_z", "ori_q", "ang_x", "ang_y", "ang_z", "lin_acc_x", "lin_acc_y", "lin_acc_z"]
+keys = ["X_tip", "Z_tip", "Bucket_x", "Bucket_z", "Distance", "Velocity", "Arm", "Bucket", "Diff_vel", "Diff_arm",  "Diff_Bucket"]
 
 # t_listener.force_plot()
 # plt.plot(observation_arr)
