@@ -13,7 +13,7 @@ The user can also use ```/src/environments/komodo_env_new.py``` for diffrent pil
 
 
 
-# Files ( komodo2 folder)
+# Files 
 
 
 ```komodo2/launch/komodo2.launch``` : (parameters: depth_cam,lidar,gazebo): lauch all the required nodes.
