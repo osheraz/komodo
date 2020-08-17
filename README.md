@@ -1,6 +1,15 @@
-# Wheel Loader Scooping Controller using Deep Reinforcement Learning
+ <!--:construction_worker: :construction: **_This page is under construction_** :construction: :construction_worker:-->
+# Package for simulating wheel loader in gazebo engine
 
 ![komodo](https://i.imgur.com/ZCKDDNQ.png)
+
+This page provides instructions and source code for simulating wheel loader and a pile of particles in gazebo. This is complementary material to the paper
+> ***Wheel Loader Scooping Controller using Deep Reinforcement learning***
+submitted to the *IEEE Access (2020)*.
+
+We provide a platform in which the user can independently collect data on a simulator using the basic envs in ```environments``` folder.
+within ```/src/environments/komodo_env.py``` the user can change pile features (shape, amount, etc..) which defined in ```Pile``` class.
+
 
 # Files ( komodo2 folder)
 
