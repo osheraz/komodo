@@ -66,6 +66,7 @@ sudo apt-get install ros-kinetic-ros-controllers
 sudo apt-get install ros-kinetic-gazebo-ros-control
 ```
 
+# How to
 
 #### Training in Gazebo
 ```
