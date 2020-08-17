@@ -6,6 +6,7 @@ import os
 import pickle
 from utils import ReplayBuffer,OUNoise
 
+# based on https://github.com/YunjaeChoi/Reinforment-Implementation-on-a-Quadruped/blob/master/quadruped/src/ddpg.py
 
 # ===========================
 #   Actor and Critic DNNs
