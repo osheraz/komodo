@@ -1,27 +1,28 @@
-# DDPG & A2C  Implementation on the komodo
+# Wheel Loader Scooping Controller using Deep Reinforcement Learning
 
 ![komodo](https://i.imgur.com/ZCKDDNQ.png)
 
 # Files ( komodo2 folder)
 
 
-- komodo2/launch/komodo2.launch : (parameters: depth_cam,lidar,gazebo): main launch 
+- komodo2/launch/komodo2.launch : (parameters: depth_cam,lidar,gazebo): lauch all the required nodes.
 - komodo2_control/config/komodo2_control.yaml : joint controller config for Gazebo
 - komodo2_description/urdf/komodo2.xacro : urdf model in real robot
 - komodo2_description/urdf/komodo2_gazebo.xacro : urdf model in Gazebo
 
-- komodo2_rl/src/ddpg.py : Deep Deterministic Policy Gradient agent (tensorflow)
-- komodo2_rl/src/Spawner.py : object spawner in gazebo script (Pile,particles etc)
-- komodo2_rl/src/komodo_env.py : enviorment setup in Gazebo
-- komodo2_rl/src/komodo_learn.py : ddpg learning script
-- komodo2_rl/src/komodo_gazebo_act.py : learned agent acts in Gazebo
+- komodo2_rl/src/agents/ddpg.py : Deep Deterministic Policy Gradient agent (tensorflow)
+- komodo2_rl/src/agents/a2c.py : Advantage actor-critic A2C agent (tensorflow)
+- komodo2_rl/src/agents/utils.py : utilities (replay buffer, OUNoise
 
+- komodo2_rl/src/environments/Spawner.py : object spawner script (can be edit to include other shapes)
+- komodo2_rl/src/environments/komodo_env.py : environment setup in Gazebo
+- komodo2_rl/src/environments/komodo_env_new.py : environment setup in Gazebo with random piles (3)
+
+- komodo2_rl/src/komodo_learn.py : learning script ( change param ddpg/a2c)
+- komodo2_rl/src/komodo_gazebo_act.py : learned agent acts in Gazebo
 - komodo2_rl/src/komodo_model.py : enviorment setup real robot
 - komodo2_rl/src/komodo_act.py : learned agent takes actions in a real robot
-
-- komodo2_rl/src/replay_buffer_memory.p : agent replay buffer memory
-- komodo2_rl/src/eps_rewards.npy : agent episode rewards
-- komodo2_rl/src/plot_eps_rewards.py : plot episode rewards from eps_rewards.npy
+- komodo2_rl/src/komodo_maunal_control.py : manual control node using joy package
 
 
 # Prerequisites 
@@ -37,27 +38,25 @@ sudo apt-get install ros-kinetic-ros-control
 sudo apt-get install ros-kinetic-ros-controllers
 sudo apt-get install ros-kinetic-gazebo-ros-control
 ```
-- Gazebo simulation update -> update to 7.x (7.0 causes error)
 
 
-#### Learning an agent
+#### Training in Gazebo
 ```
 roslaunch komodo2 komodo2.launch gazebo:=true
 python komodo_learn.py
 ```
 
-#### simulate learned agent
+#### Learned model in gazebo
 ```
 roslaunch komodo2 komodo2.launch gazebo:=true
 python komodo_gazebo_act.py
 ```
 
-#### learned agent on real robot
+#### learned agent in real robot
 ```
 roslaunch arm_control arm.launch
 rosrun arm_control inv_control.launch
 roslaunch komodo2 komodo2.launch lidar:=true
-rqt
 python komodo_act.py
 ```
 
