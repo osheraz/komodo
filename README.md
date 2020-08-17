@@ -8,7 +8,10 @@ This page provides instructions and source code for simulating wheel loader and 
 submitted to the *IEEE Access (2020)*.
 
 We provide a platform in which the user can independently collect data on a simulator using the basic envs in ```environments``` folder.
-within ```/src/environments/komodo_env.py``` the user can change pile features (shape, amount, etc..) which defined in ```Pile``` class.
+
+Within ```/src/environments/komodo_env.py``` the user can change pile features (shape, amount, etc..) which defined in the ```Pile``` class. 
+The user can also use ```/src/environments/komodo_env_new.py``` for diffrent pile arrangements on every episode (currently support up to 3 diffrent arrangements)
+
 
 
 # Files ( komodo2 folder)
