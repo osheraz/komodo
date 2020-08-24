@@ -381,7 +381,7 @@ class KomodoEnvironment:
                 self.pile.cur_height = 6 * self.pile.radius
                 self.pile.cur_angle = np.pi / 4
             else:
-                x = 3 # randint(1, 3)
+                x = randint(1, 3)
                 self.pile.set_pile(x)
                 if x == 1:
                     self.pile.cur_height = 4 * self.pile.radius
@@ -465,6 +465,7 @@ class KomodoEnvironment:
 
         xq, zq, yq = self.pile.particle_location(self.pile.num_particle)
         index = np.where(abs(yq) >= 0.2)
+        # TODO: 3D FIX
         # xq = np.delete(xq, index)
         # zq = np.delete(zq, index)
 
@@ -479,8 +480,7 @@ class KomodoEnvironment:
 
         return self.particle
 
-
-    def reward_function(self, pos, particles):
+    def reward_V1(self, pos, particles):
         """Update reward for a given State.
         where:
             pos -> current position
@@ -494,25 +494,29 @@ class KomodoEnvironment:
         # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
         # bucket_joint = self.joint_state[2]
 
-        max_particle = 8
-        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+        max_particle = 6
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
         bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        # bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
         min_end_pos = np.array([self.pile.sand_box_x , self.pile.sand_box_height + 0.5])  # [ 0.35,0.25]
-        arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0]+0.1))**2 + (bucket_pos[1] - (min_end_pos[1]))**2)
-        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2)
+
+        arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
+        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2 + self.bucket_link_z**2)
 
         # Positive Rewards:
         reward_par = 0
         if self.particle:
-            w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
-            reward_dist = 2 * (1 - math.tanh(arm_dist) ** 0.4)
-            reward_par = 0.25 * w
-            reward_arm = -0.25*self.joint_state[2]  # + 1.0 *self.z_tip #- self.joint_state[1]
+            # w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
+            w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
+            reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
+            reward_par = 0.2 * w
+            reward_arm = - self.joint_state[2] -self.joint_state[1]
             reward_tot = reward_par + reward_arm + reward_dist
         else:
-            reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4)
-            reward_arm = -1.0 *self.bucket_link_z  # 0.X
+            reward_dist = 0.25*(1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
+            reward_arm = -0.5*self.bucket_link_z  # 0.X
             reward_tot = reward_arm + reward_dist
 
 
@@ -525,6 +529,107 @@ class KomodoEnvironment:
         print('Reward dist:    {:0.2f}').format(reward_dist)
         print('Reward par:     {:0.2f}').format(reward_par)
         print('Reward arm:     {:0.2f}').format(reward_arm)
+
+
+        return reward_tot
+
+    def reward_V2(self, pos, particles):
+        """Update reward for a given State.
+        where:
+            pos -> current position
+            particles -> number of particle in the bucket
+        Params
+        ======
+            reward_pos ->  going along x axis
+            reward_ori ->  straight orientationn
+            reward_particle -> particle in bucket
+        """
+        # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
+        # bucket_joint = self.joint_state[2]
+
+
+        bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
+        b_tip_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        b_joint_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+
+        min_end_pos = np.array([self.pile.sand_box_x + 0.1 , self.pile.sand_box_height  + 0.1])  # [ 0.35,0.25]
+
+        tip_to_target_dist = math.sqrt((b_tip_pos[0] - min_end_pos[0])**2 + (b_tip_pos[1] - min_end_pos[1])**2)
+        tip_to_pile_dist = math.sqrt((b_tip_pos[0] - self.pile.sand_box_x) ** 2 + b_tip_pos[1]**2)
+
+        # Positive Rewards:
+        reward_par = 0
+        if self.particle:
+            reward_dist = (1 - math.tanh(tip_to_target_dist) ** 0.4)
+            reward_par = 0 # 0.2 * w
+            reward_arm = 0 #  -0.5*(self.joint_state[2] + self.joint_state[1])
+            reward_tot = reward_par + reward_arm + reward_dist
+        else:
+            reward_dist = (1 - math.tanh(tip_to_pile_dist) ** 0.4)
+            reward_arm = 0.5*( self.joint_state[1])   -0.5*self.bucket_link_z  # 0.X
+            reward_tot = reward_arm + reward_dist
+
+        eps = 0.05
+
+        if tip_to_target_dist < eps:
+            reward_tot += 0.02*self.particle
+            self.reach_target = True
+
+        #  Negative Rewards:
+        if pos[2] > -0.0004 or pos[0] > 1.1: #
+            reward_tot = -1
+            self.reward_done = True
+        if (self.x_tip < 0):
+            reward_tot = -1
+            self.reward_done = True
+
+        return reward_tot
+
+    def reward_V3(self, pos, particles):
+        """Update reward for a given State.
+        where:
+            pos -> current position
+            particles -> number of particle in the bucket
+        Params
+        ======
+            reward_pos ->  going along x axis
+            reward_ori ->  straight orientationn
+            reward_particle -> particle in bucket
+        """
+        # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
+        # bucket_joint = self.joint_state[2]
+
+
+        bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
+        x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
+
+        b_tip_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        b_joint_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+
+        min_end_pos = np.array([self.pile.sand_box_x + 0.1 , self.pile.sand_box_height  + 0.1])  # [ 0.35,0.25]
+
+        tip_to_target_dist = math.sqrt((b_tip_pos[0] - min_end_pos[0])**2 + (b_tip_pos[1] - min_end_pos[1])**2)
+        tip_to_pile_dist = math.sqrt((b_tip_pos[0] - self.pile.sand_box_x) ** 2 + b_tip_pos[1]**2)
+
+        # Positive Rewards:
+        reward_par = 0
+        if self.particle:
+            reward_dist = (1 - math.tanh(tip_to_target_dist) ** 0.4)
+            reward_par = 0 # 0.2 * w
+            reward_arm = 0 #  -0.5*(self.joint_state[2] + self.joint_state[1])
+            reward_tot = reward_par + reward_arm + reward_dist
+        else:
+            reward_dist = (1 - math.tanh(tip_to_pile_dist) ** 0.4)
+            reward_arm = 0.5*( self.joint_state[1])   -0.5*self.bucket_link_z  # 0.X
+            reward_tot = reward_arm + reward_dist
+
+        eps = 0.05
+
+        if tip_to_target_dist < eps:
+            reward_tot += 0.02*self.particle
+            self.reach_target = True
 
         return reward_tot
 

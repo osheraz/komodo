@@ -246,11 +246,11 @@ class KomodoEnvironment:
         self.joint_state_subscriber = rospy.Subscriber('/joint_states',JointState,self.joint_state_subscriber_callback)
         self.velocity_subscriber = rospy.Subscriber('/mobile_base_controller/odom',Odometry,self.velocity_subscriber_callback)
         self.imu_subscriber = rospy.Subscriber('/IMU',Imu,self.imu_subscriber_callback)
-        # self.torque_subscriber = rospy.Subscriber('/bucket_torque_sensor',WrenchStamped,self.torque_subscriber_callback)
-        # self.controller_state_sub = rospy.Subscriber('/bucket_position_controller/state',JointControllerState,self.controller_subscriber_callback)
         self.reward_publisher = rospy.Publisher('/reward', Float64, queue_size=10)
 
-        # TODO: Torque shit that doesnt work
+        # TODO: Torque related
+        # self.torque_subscriber = rospy.Subscriber('/bucket_torque_sensor',WrenchStamped,self.torque_subscriber_callback)
+        # self.controller_state_sub = rospy.Subscriber('/bucket_position_controller/state',JointControllerState,self.controller_subscriber_callback)
         # self.torque_publisher = rospy.Publisher('/t1',Float64,queue_size=10)
         # self.controller_publisher = rospy.Publisher('/t2',Float64,queue_size=10)
         #
@@ -486,6 +486,7 @@ class KomodoEnvironment:
 
         xq, zq, yq = self.pile.particle_location(self.pile.num_particle)
         index = np.where(abs(yq) >= 0.2)
+        # TODO: 3D FIX
         # xq = np.delete(xq, index)
         # zq = np.delete(zq, index)
 
@@ -503,7 +504,7 @@ class KomodoEnvironment:
         return self.particle
 
 
-    def reward_function_dig(self, pos, particles):
+    def reward_V1(self, pos, particles):
         """Update reward for a given State.
         where:
             pos -> current position
@@ -585,8 +586,6 @@ class KomodoEnvironment:
         # Positive Rewards:
         reward_par = 0
         if self.particle:
-            # w = 1 - ((abs(self.particle - max_particle)) / float(max(max_particle, self.particle))) ** 0.4
-            # w = 1 - (abs(self.particle - max_particle) / max(max_particle, self.particle)) ** 0.4
             reward_dist = (1 - math.tanh(tip_to_target_dist) ** 0.4)
             reward_par = 0 # 0.2 * w
             reward_arm = 0 #  -0.5*(self.joint_state[2] + self.joint_state[1])
@@ -612,7 +611,7 @@ class KomodoEnvironment:
 
         return reward_tot
 
-    def reward_function(self, pos, particles):
+    def reward_V3(self, pos, particles):
         """Update reward for a given State.
         where:
             pos -> current position
@@ -626,35 +625,35 @@ class KomodoEnvironment:
         # arm_joint = self.joint_state[1]  # TODO : compensation for unnecessary arm movements
         # bucket_joint = self.joint_state[2]
 
-        max_particle = 6
+
         bucket_link_x_pile = pos[0] - self.bucket_link_x + self.HALF_KOMODO
         x_tip =(pos[0] - self.x_tip + self.HALF_KOMODO) # via x=0,z=0
 
-        bucket_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
-        # bucket_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
+        b_tip_pos = np.array([x_tip, self.z_tip])   # via x=0,z=0
+        b_joint_pos = np.array([bucket_link_x_pile, self.bucket_link_z])   # via x=0,z=0
 
-        min_end_pos = np.array([self.pile.sand_box_x, self.pile.sand_box_height ])  # [ 0.35,0.25]
+        min_end_pos = np.array([self.pile.sand_box_x + 0.1 , self.pile.sand_box_height  + 0.1])  # [ 0.35,0.25]
 
-        arm_dist = math.sqrt((bucket_pos[0] - (min_end_pos[0] + 0.1))**2 + (bucket_pos[1] - min_end_pos[1])**2)
-        loc_dist = math.sqrt((bucket_pos[0] - min_end_pos[0]) ** 2 + self.bucket_link_z**2)
+        tip_to_target_dist = math.sqrt((b_tip_pos[0] - min_end_pos[0])**2 + (b_tip_pos[1] - min_end_pos[1])**2)
+        tip_to_pile_dist = math.sqrt((b_tip_pos[0] - self.pile.sand_box_x) ** 2 + b_tip_pos[1]**2)
 
         # Positive Rewards:
-        # reward_dist = (1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
-        # vel_discount = 1 - math.tanh(abs(self.velocity))**0.4
-        # reward_tot = reward_dist * vel_discount
-        # reward_par = 0
-
+        reward_par = 0
         if self.particle:
-            reward_dist = (1 - math.tanh(arm_dist) ** 0.4)
-            reward_par = 0
-            reward_arm = 0#- self.joint_state[2] -self.joint_state[1]
+            reward_dist = (1 - math.tanh(tip_to_target_dist) ** 0.4)
+            reward_par = 0 # 0.2 * w
+            reward_arm = 0 #  -0.5*(self.joint_state[2] + self.joint_state[1])
             reward_tot = reward_par + reward_arm + reward_dist
         else:
-            reward_dist = 0.2*(1 - math.tanh(loc_dist) ** 0.4) # 0.25 * (1 - math.tanh(loc_dist) ** 0.4)
-            reward_arm = 0 #-0.5*self.bucket_link_z  # 0.X
+            reward_dist = (1 - math.tanh(tip_to_pile_dist) ** 0.4)
+            reward_arm = 0.5*( self.joint_state[1])   -0.5*self.bucket_link_z  # 0.X
             reward_tot = reward_arm + reward_dist
 
+        eps = 0.05
 
+        if tip_to_target_dist < eps:
+            reward_tot += 0.02*self.particle
+            self.reach_target = True
 
         return reward_tot
 
